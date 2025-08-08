@@ -16,7 +16,24 @@ Install the Goose migration tool locally in the project's `bin` directory and ve
 
 ```shell
 GOBIN="$(pwd)/bin" go install github.com/pressly/goose/v3/cmd/goose@v3.24.3
+GOBIN="$(pwd)/bin" go install github.com/gojuno/minimock/v3/cmd/minimock@v3.4.5
 PATH="$(pwd)/bin:${PATH}" goose --version
+PATH="$(pwd)/bin:${PATH}" minimock --version
+
+PATH="$(pwd)/bin:${PATH}" go generate ./...
+
+go list ./...
+
+go test ./...
+
+go test -tags integration,local ./...
+go test -tags integration,ci ./...
+```
+
+```shell
+go test ./internal/... ./pkg/...
+
+./scripts/integration-test.sh
 ```
 
 **Alternative installation method:** use `go get -tool github.com/pressly/goose/v3/cmd/goose@v3.24.3` and
