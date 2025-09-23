@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/domain/model"
+	"github.com/meetmorrowsolonmars/education-pet-project/internal/metric"
 )
 
 type Service struct {
@@ -41,6 +42,8 @@ func (s *Service) Create(ctx context.Context, operation model.Operation) (model.
 	if err != nil {
 		return model.Operation{}, fmt.Errorf("create operation: %w", err)
 	}
+
+	metric.OperationsTotalCounterInc(operation.Type)
 
 	return operation, nil
 }

@@ -7,8 +7,9 @@ import (
 )
 
 type Config struct {
-	Server ServerConfig
-	JWT    JWTConfig
+	Server      ServerConfig
+	DebugServer ServerConfig
+	JWT         JWTConfig
 }
 
 type ServerConfig struct {
@@ -24,6 +25,7 @@ type JWTConfig struct {
 func ReadConfig() (Config, error) {
 	const (
 		envVarServerAddress          = "SERVER_ADDRESS"
+		envVarDebugServerAddress     = "DEBUG_SERVER_ADDRESS"
 		envVarJWTSecretKey           = "JWT_SECRET_KEY"
 		envVarJWTIssuer              = "JWT_ISSUER"
 		envVarJWTAccessTokenDuration = "JWT_ACCESS_TOKEN_DURATION"
@@ -32,6 +34,11 @@ func ReadConfig() (Config, error) {
 	serverAddress := os.Getenv(envVarServerAddress)
 	if serverAddress == "" {
 		return Config{}, fmt.Errorf("config variable %s is empty", envVarServerAddress)
+	}
+
+	debugServerAddress := os.Getenv(envVarDebugServerAddress)
+	if debugServerAddress == "" {
+		return Config{}, fmt.Errorf("config variable %s is empty", envVarDebugServerAddress)
 	}
 
 	jwtSecretKey := os.Getenv(envVarJWTSecretKey)
@@ -57,6 +64,9 @@ func ReadConfig() (Config, error) {
 	return Config{
 		Server: ServerConfig{
 			Address: serverAddress,
+		},
+		DebugServer: ServerConfig{
+			Address: debugServerAddress,
 		},
 		JWT: JWTConfig{
 			SecretKey:           []byte(jwtSecretKey),

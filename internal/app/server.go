@@ -6,11 +6,19 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"os/signal"
+	"regexp"
 	"syscall"
 	"time"
 
+	"github.com/prometheus/client_golang/examples/middleware/httpmiddleware"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
+	"github.com/meetmorrowsolonmars/education-pet-project/internal/api/middleware"
 	accountv1 "github.com/meetmorrowsolonmars/education-pet-project/internal/api/v1/account"
 	authv1 "github.com/meetmorrowsolonmars/education-pet-project/internal/api/v1/auth"
 	operationv1 "github.com/meetmorrowsolonmars/education-pet-project/internal/api/v1/operation"
@@ -18,6 +26,7 @@ import (
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/domain/auth"
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/domain/operation"
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/domain/user"
+	"github.com/meetmorrowsolonmars/education-pet-project/internal/metric"
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/provider/jwt"
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/provider/memory"
 )
@@ -38,6 +47,24 @@ func RunServer() error {
 		return fmt.Errorf("read config: %w", err)
 	}
 
+	// Configure metrics.
+
+	prometheus.NewRegistry()
+
+	registry := prometheus.NewRegistry()
+
+	registry.MustRegister(
+		collectors.NewGoCollector(
+			collectors.WithGoCollectorRuntimeMetrics(
+				collectors.GoRuntimeMetricsRule{Matcher: regexp.MustCompile("/sched/latencies:seconds")},
+			),
+		),
+	)
+
+	metric.MustRegister(registry)
+
+	promMiddleware := httpmiddleware.New(registry, prometheus.DefBuckets)
+
 	// Configure providers.
 	jwtProvider := jwt.NewProvider(config.JWT.SecretKey, config.JWT.Issuer, config.JWT.AccessTokenDuration)
 
@@ -53,20 +80,37 @@ func RunServer() error {
 
 	// Configure controllers.
 	authHandler := authv1.NewHandler(authService, logger)
-	accountHandler := accountv1.NewHandler(accountStore, jwtProvider, logger)
-	userHandler := userv1.NewHandler(userService, jwtProvider, logger)
-	operationHandler := operationv1.NewHandler(operationService, jwtProvider, logger)
+	accountHandler := accountv1.NewHandler(accountStore, logger)
+	userHandler := userv1.NewHandler(userService, logger)
+	operationHandler := operationv1.NewHandler(operationService, logger)
 
 	// Configure a HTTP server.
+	authMiddleware := middleware.NewAuthMiddleware(jwtProvider)
+
 	mux := http.NewServeMux()
 
-	authHandler.Register(mux)
-	accountHandler.Register(mux)
-	userHandler.Register(mux)
-	operationHandler.Register(mux)
+	authHandler.Register(mux, promMiddleware, authMiddleware)
+	accountHandler.Register(mux, promMiddleware, authMiddleware)
+	userHandler.Register(mux, promMiddleware, authMiddleware)
+	operationHandler.Register(mux, promMiddleware, authMiddleware)
 
-	server := &http.Server{
+	apiService := &http.Server{
 		Addr:    config.Server.Address,
+		Handler: mux,
+	}
+
+	mux = http.NewServeMux()
+
+	mux.Handle("GET /metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
+
+	mux.HandleFunc("GET /debug/pprof/", pprof.Index)
+	mux.HandleFunc("GET /debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("GET /debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("GET /debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("GET /debug/pprof/trace", pprof.Trace)
+
+	debugServer := &http.Server{
+		Addr:    config.DebugServer.Address,
 		Handler: mux,
 	}
 
@@ -76,9 +120,18 @@ func RunServer() error {
 
 	// Start the HTTP server.
 	go func() {
-		logger.Info("Start HTTP server", slog.String("address", server.Addr))
+		logger.Info("Start HTTP server", slog.String("address", apiService.Addr))
 
-		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		if err := apiService.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logger.Error("Server error", slog.String("error", err.Error()))
+			cancel()
+		}
+	}()
+
+	go func() {
+		logger.Info("Start debug server", slog.String("address", debugServer.Addr))
+
+		if err := debugServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			logger.Error("Server error", slog.String("error", err.Error()))
 			cancel()
 		}
@@ -88,14 +141,15 @@ func RunServer() error {
 	case <-ctx.Done():
 	}
 
-	logger.Info("Stop HTTP server", slog.String("address", server.Addr))
+	logger.Info("Stop HTTP server", slog.String("address", apiService.Addr))
 
 	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_ = server.Shutdown(ctx)
+	_ = apiService.Shutdown(ctx)
+	_ = debugServer.Shutdown(ctx)
 
-	logger.Info("Server stopped", slog.String("address", server.Addr))
+	logger.Info("Server stopped", slog.String("address", apiService.Addr))
 
 	return nil
 }

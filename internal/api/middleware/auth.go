@@ -14,12 +14,26 @@ type JWTProvider interface {
 	Validate(token string) (model.AuthClaims, error)
 }
 
-func AuthMiddleware(jwtProvider JWTProvider) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			authorization := r.Header.Get("Authorization")
-			if authorization == "" {
-				api.EncodeErrorf(w, http.StatusUnauthorized, "Authorization header is required")
+type AuthMiddleware interface {
+	// WrapHandler wraps the given HTTP handler for authorization.
+	WrapHandler(handler http.Handler) http.HandlerFunc
+}
+
+type authMiddleware struct {
+	jwtProvider JWTProvider
+}
+
+func NewAuthMiddleware(jwtProvider JWTProvider) AuthMiddleware {
+	return &authMiddleware{
+		jwtProvider: jwtProvider,
+	}
+}
+
+func (m *authMiddleware) WrapHandler(handler http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		authorization := r.Header.Get("Authorization")
+		if authorization == "" {
+			api.EncodeErrorf(w, http.StatusUnauthorized, "Authorization header is required")
 
 				return
 			}
@@ -33,17 +47,18 @@ func AuthMiddleware(jwtProvider JWTProvider) func(http.Handler) http.Handler {
 
 			token := parts[1]
 
-			claims, err := jwtProvider.Validate(token)
-			if err != nil {
-				api.EncodeErrorf(w, http.StatusUnauthorized, "Validate token: %s", err)
+		claims, err := m.jwtProvider.Validate(token)
+		if err != nil {
+			api.EncodeErrorf(w, http.StatusUnauthorized, "Validate token: %s", err)
 
 				return
 			}
 
-			ctx := model.WithAuthClaims(r.Context(), claims)
-			r = r.WithContext(ctx)
+		// TODO: Check that user exists.
 
-			next.ServeHTTP(w, r)
-		})
+		ctx := model.WithAuthClaims(r.Context(), claims)
+		r = r.WithContext(ctx)
+
+		handler.ServeHTTP(w, r)
 	}
 }

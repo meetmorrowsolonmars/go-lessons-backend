@@ -3,6 +3,10 @@ package auth
 import (
 	"log/slog"
 	"net/http"
+
+	"github.com/prometheus/client_golang/examples/middleware/httpmiddleware"
+
+	apimiddleware "github.com/meetmorrowsolonmars/education-pet-project/internal/api/middleware"
 )
 
 type Handler struct {
@@ -20,6 +24,10 @@ func NewHandler(
 	}
 }
 
-func (h *Handler) Register(mux *http.ServeMux) {
-	mux.HandleFunc("POST /v1/login", h.Login)
+func (h *Handler) Register(
+	mux *http.ServeMux,
+	promMiddleware httpmiddleware.Middleware,
+	_ apimiddleware.AuthMiddleware,
+) {
+	mux.HandleFunc("POST /v1/login", promMiddleware.WrapHandler("POST /v1/login", http.HandlerFunc(h.Login)))
 }
