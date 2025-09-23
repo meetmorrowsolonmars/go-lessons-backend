@@ -9,9 +9,10 @@ import (
 )
 
 type Config struct {
-	Server      ServerConfig `yaml:"server"`
-	DebugServer ServerConfig `yaml:"debug_server"`
-	JWT         JWTConfig    `yaml:"jwt"`
+	Server      ServerConfig   `yaml:"server"`
+	DebugServer ServerConfig   `yaml:"debug_server"`
+	JWT         JWTConfig      `yaml:"jwt"`
+	Postgres    PostgresConfig `yaml:"postgres"`
 }
 
 func (c *Config) Validate() error {
@@ -25,6 +26,10 @@ func (c *Config) Validate() error {
 
 	if err := c.JWT.Validate(); err != nil {
 		return fmt.Errorf("jwt config is invalid: %w", err)
+	}
+
+	if err := c.Postgres.Validate(); err != nil {
+		return fmt.Errorf("postgres config is invalid: %w", err)
 	}
 
 	return nil
@@ -59,6 +64,18 @@ func (c *JWTConfig) Validate() error {
 
 	if c.AccessTokenDuration == 0 {
 		return fmt.Errorf("access_token_duration is required")
+	}
+
+	return nil
+}
+
+type PostgresConfig struct {
+	ConnectionString string `yaml:"connection_string"`
+}
+
+func (c *PostgresConfig) Validate() error {
+	if c.ConnectionString == "" {
+		return fmt.Errorf("connection_string is required")
 	}
 
 	return nil

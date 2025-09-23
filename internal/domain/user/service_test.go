@@ -28,7 +28,6 @@ func TestService_Create(t *testing.T) {
 			name: "success",
 			service: func(mc *minimock.Controller) *Service {
 				store := NewStoreMock(mc)
-				accountStore := NewAccountStoreMock(mc)
 
 				store.CreateMock.
 					Set(func(ctx context.Context, user model.User) (model.User, error) {
@@ -45,13 +44,8 @@ func TestService_Create(t *testing.T) {
 						}, nil
 					})
 
-				accountStore.CreateDefaultMock.
-					When(minimock.AnyContext, 1).
-					Then(model.Account{}, nil)
-
 				return &Service{
-					store:        store,
-					accountStore: accountStore,
+					store: store,
 				}
 			},
 			user: model.User{
@@ -71,7 +65,6 @@ func TestService_Create(t *testing.T) {
 			name: "create user error",
 			service: func(mc *minimock.Controller) *Service {
 				store := NewStoreMock(mc)
-				accountStore := NewAccountStoreMock(mc)
 
 				store.CreateMock.
 					Set(func(ctx context.Context, user model.User) (model.User, error) {
@@ -83,8 +76,7 @@ func TestService_Create(t *testing.T) {
 					})
 
 				return &Service{
-					store:        store,
-					accountStore: accountStore,
+					store: store,
 				}
 			},
 			user: model.User{
@@ -99,7 +91,6 @@ func TestService_Create(t *testing.T) {
 			name: "create account error",
 			service: func(mc *minimock.Controller) *Service {
 				store := NewStoreMock(mc)
-				accountStore := NewAccountStoreMock(mc)
 
 				store.CreateMock.
 					Set(func(ctx context.Context, user model.User) (model.User, error) {
@@ -116,13 +107,8 @@ func TestService_Create(t *testing.T) {
 						}, nil
 					})
 
-				accountStore.CreateDefaultMock.
-					When(minimock.AnyContext, 1).
-					Then(model.Account{}, errors.New("some error"))
-
 				return &Service{
-					store:        store,
-					accountStore: accountStore,
+					store: store,
 				}
 			},
 			user: model.User{

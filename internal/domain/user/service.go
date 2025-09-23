@@ -8,17 +8,12 @@ import (
 )
 
 type Service struct {
-	store        Store
-	accountStore AccountStore
+	store Store
 }
 
-func NewService(
-	store Store,
-	accountStore AccountStore,
-) *Service {
+func NewService(store Store) *Service {
 	return &Service{
-		store:        store,
-		accountStore: accountStore,
+		store: store,
 	}
 }
 
@@ -33,11 +28,6 @@ func (s *Service) Create(ctx context.Context, user model.User) (model.User, erro
 	user, err = s.store.Create(ctx, user)
 	if err != nil {
 		return model.User{}, fmt.Errorf("create user: %w", err)
-	}
-
-	_, err = s.accountStore.CreateDefault(ctx, user.ID)
-	if err != nil {
-		return model.User{}, fmt.Errorf("create default account: %w", err)
 	}
 
 	return user, nil

@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/prometheus/client_golang/examples/middleware/httpmiddleware"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
@@ -28,7 +29,7 @@ import (
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/domain/user"
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/metric"
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/provider/jwt"
-	"github.com/meetmorrowsolonmars/education-pet-project/internal/provider/memory"
+	"github.com/meetmorrowsolonmars/education-pet-project/internal/provider/postgres"
 )
 
 func RunServer() error {
@@ -44,6 +45,7 @@ func RunServer() error {
 	const envVarConfigPath = "CONFIG_PATH"
 	configPath := os.Getenv(envVarConfigPath)
 	if configPath == "" {
+		logger.Error("Config path must be set")
 		return fmt.Errorf("config path %s must be set", envVarConfigPath)
 	}
 
@@ -51,6 +53,19 @@ func RunServer() error {
 	if err != nil {
 		logger.Error("Read config", slog.String("error", err.Error()))
 		return fmt.Errorf("read config: %w", err)
+	}
+
+	// Configure database.
+	dbConfig, err := pgxpool.ParseConfig(config.Postgres.ConnectionString)
+	if err != nil {
+		logger.Error("Parse db config", slog.String("error", err.Error()))
+		return fmt.Errorf("parse db config: %w", err)
+	}
+
+	pool, err := pgxpool.NewWithConfig(context.Background(), dbConfig)
+	if err != nil {
+		logger.Error("Create db connection", slog.String("error", err.Error()))
+		return fmt.Errorf("create db connection: %w", err)
 	}
 
 	// Configure metrics.
@@ -75,12 +90,12 @@ func RunServer() error {
 	jwtProvider := jwt.NewProvider([]byte(config.JWT.SecretKey), config.JWT.Issuer, config.JWT.AccessTokenDuration)
 
 	// Configure stores.
-	userStore := memory.NewUserStore()
-	accountStore := memory.NewAccountStore()
-	operationStore := memory.NewOperationStore()
+	userStore := postgres.NewUserStore(pool)
+	accountStore := postgres.NewAccountStore(pool)
+	operationStore := postgres.NewOperationStore(pool)
 
 	// Configure services.
-	userService := user.NewService(userStore, accountStore)
+	userService := user.NewService(userStore)
 	authService := auth.NewService(userService, jwtProvider)
 	operationService := operation.NewService(operationStore, userStore, accountStore)
 
