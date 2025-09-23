@@ -13,8 +13,10 @@ import (
 
 	accountv1 "github.com/meetmorrowsolonmars/education-pet-project/internal/api/v1/account"
 	authv1 "github.com/meetmorrowsolonmars/education-pet-project/internal/api/v1/auth"
+	operationv1 "github.com/meetmorrowsolonmars/education-pet-project/internal/api/v1/operation"
 	userv1 "github.com/meetmorrowsolonmars/education-pet-project/internal/api/v1/user"
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/domain/auth"
+	"github.com/meetmorrowsolonmars/education-pet-project/internal/domain/operation"
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/domain/user"
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/provider/jwt"
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/provider/memory"
@@ -42,15 +44,18 @@ func RunServer() error {
 	// Configure stores.
 	userStore := memory.NewUserStore()
 	accountStore := memory.NewAccountStore()
+	operationStore := memory.NewOperationStore()
 
 	// Configure services.
 	userService := user.NewService(userStore, accountStore)
 	authService := auth.NewService(userService, jwtProvider)
+	operationService := operation.NewService(operationStore, userStore, accountStore)
 
 	// Configure controllers.
 	authHandler := authv1.NewHandler(authService, logger)
 	accountHandler := accountv1.NewHandler(accountStore, jwtProvider, logger)
 	userHandler := userv1.NewHandler(userService, jwtProvider, logger)
+	operationHandler := operationv1.NewHandler(operationService, jwtProvider, logger)
 
 	// Configure a HTTP server.
 	mux := http.NewServeMux()
@@ -58,6 +63,7 @@ func RunServer() error {
 	authHandler.Register(mux)
 	accountHandler.Register(mux)
 	userHandler.Register(mux)
+	operationHandler.Register(mux)
 
 	server := &http.Server{
 		Addr:    config.Server.Address,
