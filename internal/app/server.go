@@ -41,7 +41,13 @@ func RunServer() error {
 	)
 
 	// Read app configuration.
-	config, err := ReadConfig()
+	const envVarConfigPath = "CONFIG_PATH"
+	configPath := os.Getenv(envVarConfigPath)
+	if configPath == "" {
+		return fmt.Errorf("config path %s must be set", envVarConfigPath)
+	}
+
+	config, err := ReadConfig(configPath)
 	if err != nil {
 		logger.Error("Read config", slog.String("error", err.Error()))
 		return fmt.Errorf("read config: %w", err)
@@ -66,7 +72,7 @@ func RunServer() error {
 	promMiddleware := httpmiddleware.New(registry, prometheus.DefBuckets)
 
 	// Configure providers.
-	jwtProvider := jwt.NewProvider(config.JWT.SecretKey, config.JWT.Issuer, config.JWT.AccessTokenDuration)
+	jwtProvider := jwt.NewProvider([]byte(config.JWT.SecretKey), config.JWT.Issuer, config.JWT.AccessTokenDuration)
 
 	// Configure stores.
 	userStore := memory.NewUserStore()

@@ -4,74 +4,83 @@ import (
 	"fmt"
 	"os"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	Server      ServerConfig
-	DebugServer ServerConfig
-	JWT         JWTConfig
+	Server      ServerConfig `yaml:"server"`
+	DebugServer ServerConfig `yaml:"debug_server"`
+	JWT         JWTConfig    `yaml:"jwt"`
+}
+
+func (c *Config) Validate() error {
+	if err := c.Server.Validate(); err != nil {
+		return fmt.Errorf("server config is invalid: %w", err)
+	}
+
+	if err := c.DebugServer.Validate(); err != nil {
+		return fmt.Errorf("debug server config is invalid: %w", err)
+	}
+
+	if err := c.JWT.Validate(); err != nil {
+		return fmt.Errorf("jwt config is invalid: %w", err)
+	}
+
+	return nil
 }
 
 type ServerConfig struct {
-	Address string
+	Address string `yaml:"address"`
+}
+
+func (c *ServerConfig) Validate() error {
+	if c.Address == "" {
+		return fmt.Errorf("address is required")
+	}
+
+	return nil
 }
 
 type JWTConfig struct {
-	SecretKey           []byte
-	Issuer              string
-	AccessTokenDuration time.Duration
+	SecretKey           string        `yaml:"secret_key"`
+	Issuer              string        `yaml:"issuer"`
+	AccessTokenDuration time.Duration `yaml:"access_token_duration"`
 }
 
-func ReadConfig() (Config, error) {
-	const (
-		envVarServerAddress          = "SERVER_ADDRESS"
-		envVarDebugServerAddress     = "DEBUG_SERVER_ADDRESS"
-		envVarJWTSecretKey           = "JWT_SECRET_KEY"
-		envVarJWTIssuer              = "JWT_ISSUER"
-		envVarJWTAccessTokenDuration = "JWT_ACCESS_TOKEN_DURATION"
-	)
-
-	serverAddress := os.Getenv(envVarServerAddress)
-	if serverAddress == "" {
-		return Config{}, fmt.Errorf("config variable %s is empty", envVarServerAddress)
+func (c *JWTConfig) Validate() error {
+	if c.SecretKey == "" {
+		return fmt.Errorf("secret_key is required")
 	}
 
-	debugServerAddress := os.Getenv(envVarDebugServerAddress)
-	if debugServerAddress == "" {
-		return Config{}, fmt.Errorf("config variable %s is empty", envVarDebugServerAddress)
+	if c.Issuer == "" {
+		return fmt.Errorf("issuer is required")
 	}
 
-	jwtSecretKey := os.Getenv(envVarJWTSecretKey)
-	if jwtSecretKey == "" {
-		return Config{}, fmt.Errorf("config variable %s is empty", envVarJWTSecretKey)
+	if c.AccessTokenDuration == 0 {
+		return fmt.Errorf("access_token_duration is required")
 	}
 
-	jwtIssuer := os.Getenv(envVarJWTIssuer)
-	if jwtIssuer == "" {
-		return Config{}, fmt.Errorf("config variable %s is empty", envVarJWTIssuer)
-	}
+	return nil
+}
 
-	jwtAccessTokenDurationString := os.Getenv(envVarJWTAccessTokenDuration)
-	if jwtAccessTokenDurationString == "" {
-		return Config{}, fmt.Errorf("config variable %s is empty", envVarJWTAccessTokenDuration)
-	}
-
-	jwtAccessTokenDuration, err := time.ParseDuration(jwtAccessTokenDurationString)
+func ReadConfig(path string) (Config, error) {
+	file, err := os.OpenFile(path, os.O_RDONLY, os.ModePerm)
 	if err != nil {
-		return Config{}, fmt.Errorf("config variable %s is invalid", envVarJWTAccessTokenDuration)
+		return Config{}, fmt.Errorf("open config file: %w", err)
 	}
 
-	return Config{
-		Server: ServerConfig{
-			Address: serverAddress,
-		},
-		DebugServer: ServerConfig{
-			Address: debugServerAddress,
-		},
-		JWT: JWTConfig{
-			SecretKey:           []byte(jwtSecretKey),
-			Issuer:              jwtIssuer,
-			AccessTokenDuration: jwtAccessTokenDuration,
-		},
-	}, nil
+	defer file.Close()
+
+	var config Config
+
+	if err = yaml.NewDecoder(file).Decode(&config); err != nil {
+		return Config{}, fmt.Errorf("read config file: %w", err)
+	}
+
+	if err = config.Validate(); err != nil {
+		return Config{}, fmt.Errorf("validate config file: %w", err)
+	}
+
+	return config, nil
 }

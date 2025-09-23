@@ -1,0 +1,8 @@
+server:
+  address: :7600
+debug_server:
+  address: :7601
+jwt:
+  secret_key: secret
+  issuer: education pet project
+  access_token_duration: 1h
