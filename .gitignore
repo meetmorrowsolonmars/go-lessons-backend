@@ -1,2 +1,4 @@
 .idea
 bin
+vendor
+.jwt_secret_key
