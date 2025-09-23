@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<operation>
+    <account_id>10</account_id>
+    <type>debit</type>
+    <amount>160.5</amount>
+    <description>Salary</description>
+</operation>

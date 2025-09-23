@@ -1,7 +1,6 @@
 package operation
 
 import (
-	"github.com/meetmorrowsolonmars/education-pet-project/internal/domain/model"
 	"log/slog"
 	"net/http"
 
@@ -9,6 +8,7 @@ import (
 	"github.com/shopspring/decimal"
 
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/api"
+	"github.com/meetmorrowsolonmars/education-pet-project/internal/domain/model"
 )
 
 type CreateRequest struct {
@@ -46,7 +46,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.logger.Error("Create operation", slog.String("error", err.Error()))
 
-		api.EncodeErrorf(w, http.StatusInternalServerError, "Internal server error")
+		api.EncodeErrorf(w, http.StatusInternalServerError, "Create operation error")
 
 		return
 	}

@@ -1,0 +1,22 @@
+{
+  "operations": [
+    {
+      "id": "da270184-3a9e-4082-9509-c48a6f8c505f",
+      "user_id": 10,
+      "account_id": 10,
+      "type": "debit",
+      "amount": "160.5",
+      "description": "Salary",
+      "create_time": "2025-09-10T00:00:00Z"
+    },
+    {
+      "id": "516f29da-d014-4594-a28e-771ca71b80c2",
+      "user_id": 10,
+      "account_id": 10,
+      "type": "credit",
+      "amount": "160.5",
+      "description": "New iPhone",
+      "create_time": "2025-09-10T00:00:00Z"
+    }
+  ]
+}

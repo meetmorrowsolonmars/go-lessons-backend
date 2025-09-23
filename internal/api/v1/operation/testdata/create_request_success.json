@@ -1,0 +1,6 @@
+{
+  "account_id": 10,
+  "type": "debit",
+  "amount": "160.5",
+  "description": "Salary"
+}

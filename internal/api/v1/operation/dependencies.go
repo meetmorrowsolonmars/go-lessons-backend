@@ -6,6 +6,8 @@ import (
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/domain/model"
 )
 
+//go:generate minimock -i OperationService
+
 type OperationService interface {
 	Create(ctx context.Context, operation model.Operation) (model.Operation, error)
 	GetByAccountID(ctx context.Context, account int64, limit int64, offset int64) ([]model.Operation, error)

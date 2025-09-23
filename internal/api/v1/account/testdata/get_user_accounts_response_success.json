@@ -1,0 +1,18 @@
+{
+  "accounts": [
+    {
+      "id": 1,
+      "user_id": 10,
+      "title": "default",
+      "is_default": true,
+      "create_time": "2025-09-10T00:00:00Z"
+    },
+    {
+      "id": 2,
+      "user_id": 10,
+      "title": "piggy bank",
+      "is_default": false,
+      "create_time": "2025-09-10T00:00:00Z"
+    }
+  ]
+}

@@ -8,6 +8,8 @@ import (
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/domain/model"
 )
 
+//go:generate minimock -i JWTProvider
+
 type JWTProvider interface {
 	Validate(token string) (model.AuthClaims, error)
 }

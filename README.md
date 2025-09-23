@@ -29,3 +29,11 @@ APP_PUBLIC_ADDRESS=:6000 ./bin/server
 ```shell
 openssl rand -base64 256 > ./.jwt_secret_key
 ```
+
+Install tools
+
+```shell
+GOBIN="$(pwd)/bin" go install github.com/gojuno/minimock/v3/cmd/minimock@v3.4.5
+
+PATH="$(pwd)/bin:${PATH}" go generate ./...
+```

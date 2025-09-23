@@ -6,6 +6,8 @@ import (
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/domain/model"
 )
 
+//go:generate minimock -i UserService
+
 type UserService interface {
 	Create(ctx context.Context, user model.User) (model.User, error)
 	GetByID(ctx context.Context, id int64) (model.User, error)

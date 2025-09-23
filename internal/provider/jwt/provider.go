@@ -64,7 +64,7 @@ func (p *Provider) Validate(tokenString string) (model.AuthClaims, error) {
 
 	token, err := jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); ok {
-			return []byte(p.secretKey), nil
+			return p.secretKey, nil
 		}
 
 		return nil, model.ErrNotAuthorized

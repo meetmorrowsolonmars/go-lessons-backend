@@ -42,7 +42,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.logger.Error("Login error", slog.String("error", err.Error()))
 
-		api.EncodeErrorf(w, http.StatusInternalServerError, "Login error: %s", err)
+		api.EncodeErrorf(w, http.StatusInternalServerError, "Login error")
 
 		return
 	}

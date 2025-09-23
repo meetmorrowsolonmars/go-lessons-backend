@@ -59,7 +59,7 @@ func (h *Handler) GetAccountOperations(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		h.logger.Error("Get account operations error", slog.String("error", err.Error()))
 
-		api.EncodeErrorf(w, http.StatusInternalServerError, "Get account operations error: %s", err)
+		api.EncodeErrorf(w, http.StatusInternalServerError, "Get account operations error")
 
 		return
 	}
