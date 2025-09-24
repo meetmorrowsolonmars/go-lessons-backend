@@ -4,10 +4,12 @@ package postgres
 
 import (
 	"context"
-	"github.com/meetmorrowsolonmars/education-pet-project/internal/domain/model"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+
+	"github.com/meetmorrowsolonmars/education-pet-project/internal/domain/model"
 )
 
 func TestUserStore_Create(t *testing.T) {

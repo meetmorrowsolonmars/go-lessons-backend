@@ -23,6 +23,9 @@ var (
 	//go:embed queries/delete_operation.sql
 	deleteOperationQuery string
 
+	//go:embed queries/get_operation_by_id.sql
+	getOperationByIdQuery string
+
 	//go:embed queries/get_operations_by_account_id.sql
 	getOperationsByAccountIdQuery string
 )
