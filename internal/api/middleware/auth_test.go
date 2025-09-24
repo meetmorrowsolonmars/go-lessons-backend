@@ -45,7 +45,11 @@ func TestAuthMiddleware(t *testing.T) {
 					When(token).
 					Then(expectedClaims, nil)
 
-				return AuthMiddleware(jwtProvider)(handler)
+				middleware := authMiddleware{
+					jwtProvider: jwtProvider,
+				}
+
+				return middleware.WrapHandler(handler)
 			},
 			header:   fmt.Sprintf("Bearer %s", token),
 			wantCode: http.StatusOK,
@@ -59,7 +63,11 @@ func TestAuthMiddleware(t *testing.T) {
 					_, _ = fmt.Fprintln(w, "Hello, world!")
 				})
 
-				return AuthMiddleware(jwtProvider)(handler)
+				middleware := authMiddleware{
+					jwtProvider: jwtProvider,
+				}
+
+				return middleware.WrapHandler(handler)
 			},
 			header:   "",
 			wantCode: http.StatusUnauthorized,
@@ -73,7 +81,11 @@ func TestAuthMiddleware(t *testing.T) {
 					_, _ = fmt.Fprintln(w, "Hello, world!")
 				})
 
-				return AuthMiddleware(jwtProvider)(handler)
+				middleware := authMiddleware{
+					jwtProvider: jwtProvider,
+				}
+
+				return middleware.WrapHandler(handler)
 			},
 			header:   fmt.Sprintf("Invalid %s", token),
 			wantCode: http.StatusUnauthorized,
@@ -91,7 +103,11 @@ func TestAuthMiddleware(t *testing.T) {
 					When(token).
 					Then(model.AuthClaims{}, errors.New("some error"))
 
-				return AuthMiddleware(jwtProvider)(handler)
+				middleware := authMiddleware{
+					jwtProvider: jwtProvider,
+				}
+
+				return middleware.WrapHandler(handler)
 			},
 			header:   fmt.Sprintf("Bearer %s", token),
 			wantCode: http.StatusUnauthorized,
