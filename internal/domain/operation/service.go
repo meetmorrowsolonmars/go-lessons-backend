@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/domain/model"
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/metric"
 )
@@ -46,6 +49,24 @@ func (s *Service) Create(ctx context.Context, operation model.Operation) (model.
 	metric.OperationsTotalCounterInc(operation.Type)
 
 	return operation, nil
+}
+
+func (s *Service) Update(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string) error {
+	err := s.store.Update(ctx, id, amount, description)
+	if err != nil {
+		return fmt.Errorf("update operation: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Service) Delete(ctx context.Context, id uuid.UUID) error {
+	err := s.store.Delete(ctx, id)
+	if err != nil {
+		return fmt.Errorf("delete operation: %w", err)
+	}
+
+	return nil
 }
 
 func (s *Service) GetByAccountID(

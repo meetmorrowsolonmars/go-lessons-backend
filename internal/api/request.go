@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+
+	"github.com/google/uuid"
 )
 
 func DecodeRequest[T any](r *http.Request) (T, error) {
@@ -28,6 +30,24 @@ func PathValueInt64(r *http.Request, required bool, key string) (int64, error) {
 	}
 
 	return number, nil
+}
+
+func PathValueUUID(r *http.Request, required bool, key string) (uuid.UUID, error) {
+	v := r.PathValue(key)
+	if v == "" {
+		if required {
+			return uuid.Nil, fmt.Errorf("%s is required", key)
+		}
+
+		return uuid.Nil, nil
+	}
+
+	value, err := uuid.Parse(v)
+	if err != nil {
+		return uuid.Nil, err
+	}
+
+	return value, nil
 }
 
 func QueryValueInt64(r *http.Request, required bool, key string) (int64, error) {

@@ -32,6 +32,14 @@ func (h *Handler) Register(
 	mux.Handle("POST /v1/operations",
 		promMiddleware.WrapHandler("POST /v1/operations",
 			authMiddleware.WrapHandler(http.HandlerFunc(h.Create))))
+	mux.Handle("PATCH /v1/operations/{operation_id}",
+		promMiddleware.WrapHandler("PATCH /v1/operations/{operation_id}",
+			authMiddleware.WrapHandler(http.HandlerFunc(h.Update))),
+	)
+	mux.Handle("DELETE /v1/operations/{operation_id}",
+		promMiddleware.WrapHandler("DELETE /v1/operations/{operation_id}",
+			authMiddleware.WrapHandler(http.HandlerFunc(h.Delete))),
+	)
 	mux.Handle("GET /v1/operations/{account_id}",
 		promMiddleware.WrapHandler("GET /v1/operations/{account_id}",
 			authMiddleware.WrapHandler(http.HandlerFunc(h.GetAccountOperations))),

@@ -1,0 +1,19 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4317
+processors:
+  batch:
+exporters:
+  otlphttp:
+    endpoint: http://host.docker.internal:4320
+    tls:
+      insecure: true
+    headers:
+      x-scope-orgid: foo-bar-baz
+service:
+  pipelines:
+    traces:
+      receivers: [ otlp ]
+      exporters: [ otlphttp ]

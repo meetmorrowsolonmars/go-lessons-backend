@@ -19,6 +19,18 @@ services:
       POSTGRES_DB: postgres
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.135.0
+    container_name: otel_collector
+    restart: unless-stopped
+    command: >
+      --config=/etc/otel-collector.yaml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "4317:4317"
+    volumes:
+      - "./deployments/opentelemetry/otel-collector.yaml:/etc/otel-collector.yaml"
   prometheus:
     image: prom/prometheus
     container_name: prometheus
@@ -45,3 +57,15 @@ services:
       - "GF_SECURITY_ADMIN_PASSWORD=grafana"
     volumes:
       - ./deployments/grafana:/etc/grafana/provisioning/datasources
+  tempo:
+    image: grafana/tempo:main-79bbab4
+    restart: unless-stopped
+    command: >
+      -config.file=/etc/tempo.yaml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "3200:3200"
+      - "4320:4320"
+    volumes:
+      - "./deployments/grafana/tempo.yaml:/etc/tempo.yaml"

@@ -3,6 +3,9 @@ package operation
 import (
 	"context"
 
+	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
+
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/domain/model"
 )
 
@@ -10,6 +13,8 @@ import (
 
 type Store interface {
 	Create(ctx context.Context, operation model.Operation) (model.Operation, error)
+	Update(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string) error
+	Delete(ctx context.Context, id uuid.UUID) error
 	GetByAccountID(ctx context.Context, accountID int64, limit int64, offset int64) ([]model.Operation, error)
 }
 

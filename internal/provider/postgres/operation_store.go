@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/shopspring/decimal"
 
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/domain/model"
 )
@@ -15,6 +16,12 @@ import (
 var (
 	//go:embed queries/create_operation.sql
 	createOperationQuery string
+
+	//go:embed queries/update_operation.sql
+	updateOperationQuery string
+
+	//go:embed queries/delete_operation.sql
+	deleteOperationQuery string
 
 	//go:embed queries/get_operations_by_account_id.sql
 	getOperationsByAccountIdQuery string
@@ -59,6 +66,32 @@ func (s *OperationStore) Create(ctx context.Context, operation model.Operation) 
 	}
 
 	return operation, nil
+}
+
+func (s *OperationStore) Update(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string) error {
+	result, err := s.db.Exec(ctx, updateOperationQuery, id, amount, description)
+	if err != nil {
+		return fmt.Errorf("update operation: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("operation not found: %w", model.ErrNotFound)
+	}
+
+	return nil
+}
+
+func (s *OperationStore) Delete(ctx context.Context, id uuid.UUID) error {
+	result, err := s.db.Exec(ctx, deleteOperationQuery, id)
+	if err != nil {
+		return fmt.Errorf("delete operation: %w", err)
+	}
+
+	if result.RowsAffected() == 0 {
+		return fmt.Errorf("operation not found: %w", model.ErrNotFound)
+	}
+
+	return nil
 }
 
 func (s *OperationStore) GetByAccountID(

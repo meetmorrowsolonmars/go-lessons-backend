@@ -18,6 +18,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/propagation"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/api/middleware"
 	accountv1 "github.com/meetmorrowsolonmars/education-pet-project/internal/api/v1/account"
@@ -62,11 +66,51 @@ func RunServer() error {
 		return fmt.Errorf("parse db config: %w", err)
 	}
 
+	// TODO: Use normal context.
 	pool, err := pgxpool.NewWithConfig(context.Background(), dbConfig)
 	if err != nil {
 		logger.Error("Create db connection", slog.String("error", err.Error()))
 		return fmt.Errorf("create db connection: %w", err)
 	}
+
+	// Configure traces.
+
+	propagator := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
+	otel.SetTextMapPropagator(propagator)
+
+	otlpTraceExporter, err := otlptracehttp.New(
+		context.Background(),
+		otlptracehttp.WithEndpoint("localhost:4317"),
+		otlptracehttp.WithTimeout(5*time.Second),
+		otlptracehttp.WithInsecure(),
+	)
+	if err != nil {
+		logger.Error("Create OTLP trace exporter", slog.String("error", err.Error()))
+		return fmt.Errorf("create OTLP trace exporter: %w", err)
+	}
+
+	batchSpanProcessor := sdktrace.NewBatchSpanProcessor(otlpTraceExporter,
+		sdktrace.WithBatchTimeout(5*time.Second),
+	)
+
+	tracerProvider := sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithSpanProcessor(batchSpanProcessor),
+	)
+
+	otel.SetTracerProvider(tracerProvider)
+
+	otel.SetTextMapPropagator(propagator)
+
+	// TODO: use for graceful shutdown.
+	// tracerProvider.Shutdown(context.Background())
+
+	otel.GetTracerProvider()
+
+	tracer := otel.Tracer("")
+	_, span := tracer.Start(context.Background(), "test")
+	span.AddEvent("hello world")
+	span.End()
 
 	// Configure metrics.
 
