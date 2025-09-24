@@ -11,7 +11,9 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/google/uuid"
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/domain/model"
+	"github.com/shopspring/decimal"
 )
 
 // OperationServiceMock implements OperationService
@@ -26,12 +28,26 @@ type OperationServiceMock struct {
 	beforeCreateCounter uint64
 	CreateMock          mOperationServiceMockCreate
 
+	funcDelete          func(ctx context.Context, id uuid.UUID) (err error)
+	funcDeleteOrigin    string
+	inspectFuncDelete   func(ctx context.Context, id uuid.UUID)
+	afterDeleteCounter  uint64
+	beforeDeleteCounter uint64
+	DeleteMock          mOperationServiceMockDelete
+
 	funcGetByAccountID          func(ctx context.Context, account int64, limit int64, offset int64) (oa1 []model.Operation, err error)
 	funcGetByAccountIDOrigin    string
 	inspectFuncGetByAccountID   func(ctx context.Context, account int64, limit int64, offset int64)
 	afterGetByAccountIDCounter  uint64
 	beforeGetByAccountIDCounter uint64
 	GetByAccountIDMock          mOperationServiceMockGetByAccountID
+
+	funcUpdate          func(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string) (err error)
+	funcUpdateOrigin    string
+	inspectFuncUpdate   func(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string)
+	afterUpdateCounter  uint64
+	beforeUpdateCounter uint64
+	UpdateMock          mOperationServiceMockUpdate
 }
 
 // NewOperationServiceMock returns a mock for OperationService
@@ -45,8 +61,14 @@ func NewOperationServiceMock(t minimock.Tester) *OperationServiceMock {
 	m.CreateMock = mOperationServiceMockCreate{mock: m}
 	m.CreateMock.callArgs = []*OperationServiceMockCreateParams{}
 
+	m.DeleteMock = mOperationServiceMockDelete{mock: m}
+	m.DeleteMock.callArgs = []*OperationServiceMockDeleteParams{}
+
 	m.GetByAccountIDMock = mOperationServiceMockGetByAccountID{mock: m}
 	m.GetByAccountIDMock.callArgs = []*OperationServiceMockGetByAccountIDParams{}
+
+	m.UpdateMock = mOperationServiceMockUpdate{mock: m}
+	m.UpdateMock.callArgs = []*OperationServiceMockUpdateParams{}
 
 	t.Cleanup(m.MinimockFinish)
 
@@ -393,6 +415,348 @@ func (m *OperationServiceMock) MinimockCreateInspect() {
 	if !m.CreateMock.invocationsDone() && afterCreateCounter > 0 {
 		m.t.Errorf("Expected %d calls to OperationServiceMock.Create at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.CreateMock.expectedInvocations), m.CreateMock.expectedInvocationsOrigin, afterCreateCounter)
+	}
+}
+
+type mOperationServiceMockDelete struct {
+	optional           bool
+	mock               *OperationServiceMock
+	defaultExpectation *OperationServiceMockDeleteExpectation
+	expectations       []*OperationServiceMockDeleteExpectation
+
+	callArgs []*OperationServiceMockDeleteParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// OperationServiceMockDeleteExpectation specifies expectation struct of the OperationService.Delete
+type OperationServiceMockDeleteExpectation struct {
+	mock               *OperationServiceMock
+	params             *OperationServiceMockDeleteParams
+	paramPtrs          *OperationServiceMockDeleteParamPtrs
+	expectationOrigins OperationServiceMockDeleteExpectationOrigins
+	results            *OperationServiceMockDeleteResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// OperationServiceMockDeleteParams contains parameters of the OperationService.Delete
+type OperationServiceMockDeleteParams struct {
+	ctx context.Context
+	id  uuid.UUID
+}
+
+// OperationServiceMockDeleteParamPtrs contains pointers to parameters of the OperationService.Delete
+type OperationServiceMockDeleteParamPtrs struct {
+	ctx *context.Context
+	id  *uuid.UUID
+}
+
+// OperationServiceMockDeleteResults contains results of the OperationService.Delete
+type OperationServiceMockDeleteResults struct {
+	err error
+}
+
+// OperationServiceMockDeleteOrigins contains origins of expectations of the OperationService.Delete
+type OperationServiceMockDeleteExpectationOrigins struct {
+	origin    string
+	originCtx string
+	originId  string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmDelete *mOperationServiceMockDelete) Optional() *mOperationServiceMockDelete {
+	mmDelete.optional = true
+	return mmDelete
+}
+
+// Expect sets up expected params for OperationService.Delete
+func (mmDelete *mOperationServiceMockDelete) Expect(ctx context.Context, id uuid.UUID) *mOperationServiceMockDelete {
+	if mmDelete.mock.funcDelete != nil {
+		mmDelete.mock.t.Fatalf("OperationServiceMock.Delete mock is already set by Set")
+	}
+
+	if mmDelete.defaultExpectation == nil {
+		mmDelete.defaultExpectation = &OperationServiceMockDeleteExpectation{}
+	}
+
+	if mmDelete.defaultExpectation.paramPtrs != nil {
+		mmDelete.mock.t.Fatalf("OperationServiceMock.Delete mock is already set by ExpectParams functions")
+	}
+
+	mmDelete.defaultExpectation.params = &OperationServiceMockDeleteParams{ctx, id}
+	mmDelete.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmDelete.expectations {
+		if minimock.Equal(e.params, mmDelete.defaultExpectation.params) {
+			mmDelete.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmDelete.defaultExpectation.params)
+		}
+	}
+
+	return mmDelete
+}
+
+// ExpectCtxParam1 sets up expected param ctx for OperationService.Delete
+func (mmDelete *mOperationServiceMockDelete) ExpectCtxParam1(ctx context.Context) *mOperationServiceMockDelete {
+	if mmDelete.mock.funcDelete != nil {
+		mmDelete.mock.t.Fatalf("OperationServiceMock.Delete mock is already set by Set")
+	}
+
+	if mmDelete.defaultExpectation == nil {
+		mmDelete.defaultExpectation = &OperationServiceMockDeleteExpectation{}
+	}
+
+	if mmDelete.defaultExpectation.params != nil {
+		mmDelete.mock.t.Fatalf("OperationServiceMock.Delete mock is already set by Expect")
+	}
+
+	if mmDelete.defaultExpectation.paramPtrs == nil {
+		mmDelete.defaultExpectation.paramPtrs = &OperationServiceMockDeleteParamPtrs{}
+	}
+	mmDelete.defaultExpectation.paramPtrs.ctx = &ctx
+	mmDelete.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmDelete
+}
+
+// ExpectIdParam2 sets up expected param id for OperationService.Delete
+func (mmDelete *mOperationServiceMockDelete) ExpectIdParam2(id uuid.UUID) *mOperationServiceMockDelete {
+	if mmDelete.mock.funcDelete != nil {
+		mmDelete.mock.t.Fatalf("OperationServiceMock.Delete mock is already set by Set")
+	}
+
+	if mmDelete.defaultExpectation == nil {
+		mmDelete.defaultExpectation = &OperationServiceMockDeleteExpectation{}
+	}
+
+	if mmDelete.defaultExpectation.params != nil {
+		mmDelete.mock.t.Fatalf("OperationServiceMock.Delete mock is already set by Expect")
+	}
+
+	if mmDelete.defaultExpectation.paramPtrs == nil {
+		mmDelete.defaultExpectation.paramPtrs = &OperationServiceMockDeleteParamPtrs{}
+	}
+	mmDelete.defaultExpectation.paramPtrs.id = &id
+	mmDelete.defaultExpectation.expectationOrigins.originId = minimock.CallerInfo(1)
+
+	return mmDelete
+}
+
+// Inspect accepts an inspector function that has same arguments as the OperationService.Delete
+func (mmDelete *mOperationServiceMockDelete) Inspect(f func(ctx context.Context, id uuid.UUID)) *mOperationServiceMockDelete {
+	if mmDelete.mock.inspectFuncDelete != nil {
+		mmDelete.mock.t.Fatalf("Inspect function is already set for OperationServiceMock.Delete")
+	}
+
+	mmDelete.mock.inspectFuncDelete = f
+
+	return mmDelete
+}
+
+// Return sets up results that will be returned by OperationService.Delete
+func (mmDelete *mOperationServiceMockDelete) Return(err error) *OperationServiceMock {
+	if mmDelete.mock.funcDelete != nil {
+		mmDelete.mock.t.Fatalf("OperationServiceMock.Delete mock is already set by Set")
+	}
+
+	if mmDelete.defaultExpectation == nil {
+		mmDelete.defaultExpectation = &OperationServiceMockDeleteExpectation{mock: mmDelete.mock}
+	}
+	mmDelete.defaultExpectation.results = &OperationServiceMockDeleteResults{err}
+	mmDelete.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmDelete.mock
+}
+
+// Set uses given function f to mock the OperationService.Delete method
+func (mmDelete *mOperationServiceMockDelete) Set(f func(ctx context.Context, id uuid.UUID) (err error)) *OperationServiceMock {
+	if mmDelete.defaultExpectation != nil {
+		mmDelete.mock.t.Fatalf("Default expectation is already set for the OperationService.Delete method")
+	}
+
+	if len(mmDelete.expectations) > 0 {
+		mmDelete.mock.t.Fatalf("Some expectations are already set for the OperationService.Delete method")
+	}
+
+	mmDelete.mock.funcDelete = f
+	mmDelete.mock.funcDeleteOrigin = minimock.CallerInfo(1)
+	return mmDelete.mock
+}
+
+// When sets expectation for the OperationService.Delete which will trigger the result defined by the following
+// Then helper
+func (mmDelete *mOperationServiceMockDelete) When(ctx context.Context, id uuid.UUID) *OperationServiceMockDeleteExpectation {
+	if mmDelete.mock.funcDelete != nil {
+		mmDelete.mock.t.Fatalf("OperationServiceMock.Delete mock is already set by Set")
+	}
+
+	expectation := &OperationServiceMockDeleteExpectation{
+		mock:               mmDelete.mock,
+		params:             &OperationServiceMockDeleteParams{ctx, id},
+		expectationOrigins: OperationServiceMockDeleteExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmDelete.expectations = append(mmDelete.expectations, expectation)
+	return expectation
+}
+
+// Then sets up OperationService.Delete return parameters for the expectation previously defined by the When method
+func (e *OperationServiceMockDeleteExpectation) Then(err error) *OperationServiceMock {
+	e.results = &OperationServiceMockDeleteResults{err}
+	return e.mock
+}
+
+// Times sets number of times OperationService.Delete should be invoked
+func (mmDelete *mOperationServiceMockDelete) Times(n uint64) *mOperationServiceMockDelete {
+	if n == 0 {
+		mmDelete.mock.t.Fatalf("Times of OperationServiceMock.Delete mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmDelete.expectedInvocations, n)
+	mmDelete.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmDelete
+}
+
+func (mmDelete *mOperationServiceMockDelete) invocationsDone() bool {
+	if len(mmDelete.expectations) == 0 && mmDelete.defaultExpectation == nil && mmDelete.mock.funcDelete == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmDelete.mock.afterDeleteCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmDelete.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// Delete implements OperationService
+func (mmDelete *OperationServiceMock) Delete(ctx context.Context, id uuid.UUID) (err error) {
+	mm_atomic.AddUint64(&mmDelete.beforeDeleteCounter, 1)
+	defer mm_atomic.AddUint64(&mmDelete.afterDeleteCounter, 1)
+
+	mmDelete.t.Helper()
+
+	if mmDelete.inspectFuncDelete != nil {
+		mmDelete.inspectFuncDelete(ctx, id)
+	}
+
+	mm_params := OperationServiceMockDeleteParams{ctx, id}
+
+	// Record call args
+	mmDelete.DeleteMock.mutex.Lock()
+	mmDelete.DeleteMock.callArgs = append(mmDelete.DeleteMock.callArgs, &mm_params)
+	mmDelete.DeleteMock.mutex.Unlock()
+
+	for _, e := range mmDelete.DeleteMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmDelete.DeleteMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmDelete.DeleteMock.defaultExpectation.Counter, 1)
+		mm_want := mmDelete.DeleteMock.defaultExpectation.params
+		mm_want_ptrs := mmDelete.DeleteMock.defaultExpectation.paramPtrs
+
+		mm_got := OperationServiceMockDeleteParams{ctx, id}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmDelete.t.Errorf("OperationServiceMock.Delete got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDelete.DeleteMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
+				mmDelete.t.Errorf("OperationServiceMock.Delete got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDelete.DeleteMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmDelete.t.Errorf("OperationServiceMock.Delete got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmDelete.DeleteMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmDelete.DeleteMock.defaultExpectation.results
+		if mm_results == nil {
+			mmDelete.t.Fatal("No results are set for the OperationServiceMock.Delete")
+		}
+		return (*mm_results).err
+	}
+	if mmDelete.funcDelete != nil {
+		return mmDelete.funcDelete(ctx, id)
+	}
+	mmDelete.t.Fatalf("Unexpected call to OperationServiceMock.Delete. %v %v", ctx, id)
+	return
+}
+
+// DeleteAfterCounter returns a count of finished OperationServiceMock.Delete invocations
+func (mmDelete *OperationServiceMock) DeleteAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDelete.afterDeleteCounter)
+}
+
+// DeleteBeforeCounter returns a count of OperationServiceMock.Delete invocations
+func (mmDelete *OperationServiceMock) DeleteBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDelete.beforeDeleteCounter)
+}
+
+// Calls returns a list of arguments used in each call to OperationServiceMock.Delete.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmDelete *mOperationServiceMockDelete) Calls() []*OperationServiceMockDeleteParams {
+	mmDelete.mutex.RLock()
+
+	argCopy := make([]*OperationServiceMockDeleteParams, len(mmDelete.callArgs))
+	copy(argCopy, mmDelete.callArgs)
+
+	mmDelete.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockDeleteDone returns true if the count of the Delete invocations corresponds
+// the number of defined expectations
+func (m *OperationServiceMock) MinimockDeleteDone() bool {
+	if m.DeleteMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.DeleteMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.DeleteMock.invocationsDone()
+}
+
+// MinimockDeleteInspect logs each unmet expectation
+func (m *OperationServiceMock) MinimockDeleteInspect() {
+	for _, e := range m.DeleteMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to OperationServiceMock.Delete at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterDeleteCounter := mm_atomic.LoadUint64(&m.afterDeleteCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.DeleteMock.defaultExpectation != nil && afterDeleteCounter < 1 {
+		if m.DeleteMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to OperationServiceMock.Delete at\n%s", m.DeleteMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to OperationServiceMock.Delete at\n%s with params: %#v", m.DeleteMock.defaultExpectation.expectationOrigins.origin, *m.DeleteMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcDelete != nil && afterDeleteCounter < 1 {
+		m.t.Errorf("Expected call to OperationServiceMock.Delete at\n%s", m.funcDeleteOrigin)
+	}
+
+	if !m.DeleteMock.invocationsDone() && afterDeleteCounter > 0 {
+		m.t.Errorf("Expected %d calls to OperationServiceMock.Delete at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.DeleteMock.expectedInvocations), m.DeleteMock.expectedInvocationsOrigin, afterDeleteCounter)
 	}
 }
 
@@ -801,13 +1165,421 @@ func (m *OperationServiceMock) MinimockGetByAccountIDInspect() {
 	}
 }
 
+type mOperationServiceMockUpdate struct {
+	optional           bool
+	mock               *OperationServiceMock
+	defaultExpectation *OperationServiceMockUpdateExpectation
+	expectations       []*OperationServiceMockUpdateExpectation
+
+	callArgs []*OperationServiceMockUpdateParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// OperationServiceMockUpdateExpectation specifies expectation struct of the OperationService.Update
+type OperationServiceMockUpdateExpectation struct {
+	mock               *OperationServiceMock
+	params             *OperationServiceMockUpdateParams
+	paramPtrs          *OperationServiceMockUpdateParamPtrs
+	expectationOrigins OperationServiceMockUpdateExpectationOrigins
+	results            *OperationServiceMockUpdateResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// OperationServiceMockUpdateParams contains parameters of the OperationService.Update
+type OperationServiceMockUpdateParams struct {
+	ctx         context.Context
+	id          uuid.UUID
+	amount      decimal.Decimal
+	description string
+}
+
+// OperationServiceMockUpdateParamPtrs contains pointers to parameters of the OperationService.Update
+type OperationServiceMockUpdateParamPtrs struct {
+	ctx         *context.Context
+	id          *uuid.UUID
+	amount      *decimal.Decimal
+	description *string
+}
+
+// OperationServiceMockUpdateResults contains results of the OperationService.Update
+type OperationServiceMockUpdateResults struct {
+	err error
+}
+
+// OperationServiceMockUpdateOrigins contains origins of expectations of the OperationService.Update
+type OperationServiceMockUpdateExpectationOrigins struct {
+	origin            string
+	originCtx         string
+	originId          string
+	originAmount      string
+	originDescription string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmUpdate *mOperationServiceMockUpdate) Optional() *mOperationServiceMockUpdate {
+	mmUpdate.optional = true
+	return mmUpdate
+}
+
+// Expect sets up expected params for OperationService.Update
+func (mmUpdate *mOperationServiceMockUpdate) Expect(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string) *mOperationServiceMockUpdate {
+	if mmUpdate.mock.funcUpdate != nil {
+		mmUpdate.mock.t.Fatalf("OperationServiceMock.Update mock is already set by Set")
+	}
+
+	if mmUpdate.defaultExpectation == nil {
+		mmUpdate.defaultExpectation = &OperationServiceMockUpdateExpectation{}
+	}
+
+	if mmUpdate.defaultExpectation.paramPtrs != nil {
+		mmUpdate.mock.t.Fatalf("OperationServiceMock.Update mock is already set by ExpectParams functions")
+	}
+
+	mmUpdate.defaultExpectation.params = &OperationServiceMockUpdateParams{ctx, id, amount, description}
+	mmUpdate.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmUpdate.expectations {
+		if minimock.Equal(e.params, mmUpdate.defaultExpectation.params) {
+			mmUpdate.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmUpdate.defaultExpectation.params)
+		}
+	}
+
+	return mmUpdate
+}
+
+// ExpectCtxParam1 sets up expected param ctx for OperationService.Update
+func (mmUpdate *mOperationServiceMockUpdate) ExpectCtxParam1(ctx context.Context) *mOperationServiceMockUpdate {
+	if mmUpdate.mock.funcUpdate != nil {
+		mmUpdate.mock.t.Fatalf("OperationServiceMock.Update mock is already set by Set")
+	}
+
+	if mmUpdate.defaultExpectation == nil {
+		mmUpdate.defaultExpectation = &OperationServiceMockUpdateExpectation{}
+	}
+
+	if mmUpdate.defaultExpectation.params != nil {
+		mmUpdate.mock.t.Fatalf("OperationServiceMock.Update mock is already set by Expect")
+	}
+
+	if mmUpdate.defaultExpectation.paramPtrs == nil {
+		mmUpdate.defaultExpectation.paramPtrs = &OperationServiceMockUpdateParamPtrs{}
+	}
+	mmUpdate.defaultExpectation.paramPtrs.ctx = &ctx
+	mmUpdate.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmUpdate
+}
+
+// ExpectIdParam2 sets up expected param id for OperationService.Update
+func (mmUpdate *mOperationServiceMockUpdate) ExpectIdParam2(id uuid.UUID) *mOperationServiceMockUpdate {
+	if mmUpdate.mock.funcUpdate != nil {
+		mmUpdate.mock.t.Fatalf("OperationServiceMock.Update mock is already set by Set")
+	}
+
+	if mmUpdate.defaultExpectation == nil {
+		mmUpdate.defaultExpectation = &OperationServiceMockUpdateExpectation{}
+	}
+
+	if mmUpdate.defaultExpectation.params != nil {
+		mmUpdate.mock.t.Fatalf("OperationServiceMock.Update mock is already set by Expect")
+	}
+
+	if mmUpdate.defaultExpectation.paramPtrs == nil {
+		mmUpdate.defaultExpectation.paramPtrs = &OperationServiceMockUpdateParamPtrs{}
+	}
+	mmUpdate.defaultExpectation.paramPtrs.id = &id
+	mmUpdate.defaultExpectation.expectationOrigins.originId = minimock.CallerInfo(1)
+
+	return mmUpdate
+}
+
+// ExpectAmountParam3 sets up expected param amount for OperationService.Update
+func (mmUpdate *mOperationServiceMockUpdate) ExpectAmountParam3(amount decimal.Decimal) *mOperationServiceMockUpdate {
+	if mmUpdate.mock.funcUpdate != nil {
+		mmUpdate.mock.t.Fatalf("OperationServiceMock.Update mock is already set by Set")
+	}
+
+	if mmUpdate.defaultExpectation == nil {
+		mmUpdate.defaultExpectation = &OperationServiceMockUpdateExpectation{}
+	}
+
+	if mmUpdate.defaultExpectation.params != nil {
+		mmUpdate.mock.t.Fatalf("OperationServiceMock.Update mock is already set by Expect")
+	}
+
+	if mmUpdate.defaultExpectation.paramPtrs == nil {
+		mmUpdate.defaultExpectation.paramPtrs = &OperationServiceMockUpdateParamPtrs{}
+	}
+	mmUpdate.defaultExpectation.paramPtrs.amount = &amount
+	mmUpdate.defaultExpectation.expectationOrigins.originAmount = minimock.CallerInfo(1)
+
+	return mmUpdate
+}
+
+// ExpectDescriptionParam4 sets up expected param description for OperationService.Update
+func (mmUpdate *mOperationServiceMockUpdate) ExpectDescriptionParam4(description string) *mOperationServiceMockUpdate {
+	if mmUpdate.mock.funcUpdate != nil {
+		mmUpdate.mock.t.Fatalf("OperationServiceMock.Update mock is already set by Set")
+	}
+
+	if mmUpdate.defaultExpectation == nil {
+		mmUpdate.defaultExpectation = &OperationServiceMockUpdateExpectation{}
+	}
+
+	if mmUpdate.defaultExpectation.params != nil {
+		mmUpdate.mock.t.Fatalf("OperationServiceMock.Update mock is already set by Expect")
+	}
+
+	if mmUpdate.defaultExpectation.paramPtrs == nil {
+		mmUpdate.defaultExpectation.paramPtrs = &OperationServiceMockUpdateParamPtrs{}
+	}
+	mmUpdate.defaultExpectation.paramPtrs.description = &description
+	mmUpdate.defaultExpectation.expectationOrigins.originDescription = minimock.CallerInfo(1)
+
+	return mmUpdate
+}
+
+// Inspect accepts an inspector function that has same arguments as the OperationService.Update
+func (mmUpdate *mOperationServiceMockUpdate) Inspect(f func(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string)) *mOperationServiceMockUpdate {
+	if mmUpdate.mock.inspectFuncUpdate != nil {
+		mmUpdate.mock.t.Fatalf("Inspect function is already set for OperationServiceMock.Update")
+	}
+
+	mmUpdate.mock.inspectFuncUpdate = f
+
+	return mmUpdate
+}
+
+// Return sets up results that will be returned by OperationService.Update
+func (mmUpdate *mOperationServiceMockUpdate) Return(err error) *OperationServiceMock {
+	if mmUpdate.mock.funcUpdate != nil {
+		mmUpdate.mock.t.Fatalf("OperationServiceMock.Update mock is already set by Set")
+	}
+
+	if mmUpdate.defaultExpectation == nil {
+		mmUpdate.defaultExpectation = &OperationServiceMockUpdateExpectation{mock: mmUpdate.mock}
+	}
+	mmUpdate.defaultExpectation.results = &OperationServiceMockUpdateResults{err}
+	mmUpdate.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmUpdate.mock
+}
+
+// Set uses given function f to mock the OperationService.Update method
+func (mmUpdate *mOperationServiceMockUpdate) Set(f func(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string) (err error)) *OperationServiceMock {
+	if mmUpdate.defaultExpectation != nil {
+		mmUpdate.mock.t.Fatalf("Default expectation is already set for the OperationService.Update method")
+	}
+
+	if len(mmUpdate.expectations) > 0 {
+		mmUpdate.mock.t.Fatalf("Some expectations are already set for the OperationService.Update method")
+	}
+
+	mmUpdate.mock.funcUpdate = f
+	mmUpdate.mock.funcUpdateOrigin = minimock.CallerInfo(1)
+	return mmUpdate.mock
+}
+
+// When sets expectation for the OperationService.Update which will trigger the result defined by the following
+// Then helper
+func (mmUpdate *mOperationServiceMockUpdate) When(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string) *OperationServiceMockUpdateExpectation {
+	if mmUpdate.mock.funcUpdate != nil {
+		mmUpdate.mock.t.Fatalf("OperationServiceMock.Update mock is already set by Set")
+	}
+
+	expectation := &OperationServiceMockUpdateExpectation{
+		mock:               mmUpdate.mock,
+		params:             &OperationServiceMockUpdateParams{ctx, id, amount, description},
+		expectationOrigins: OperationServiceMockUpdateExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmUpdate.expectations = append(mmUpdate.expectations, expectation)
+	return expectation
+}
+
+// Then sets up OperationService.Update return parameters for the expectation previously defined by the When method
+func (e *OperationServiceMockUpdateExpectation) Then(err error) *OperationServiceMock {
+	e.results = &OperationServiceMockUpdateResults{err}
+	return e.mock
+}
+
+// Times sets number of times OperationService.Update should be invoked
+func (mmUpdate *mOperationServiceMockUpdate) Times(n uint64) *mOperationServiceMockUpdate {
+	if n == 0 {
+		mmUpdate.mock.t.Fatalf("Times of OperationServiceMock.Update mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmUpdate.expectedInvocations, n)
+	mmUpdate.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmUpdate
+}
+
+func (mmUpdate *mOperationServiceMockUpdate) invocationsDone() bool {
+	if len(mmUpdate.expectations) == 0 && mmUpdate.defaultExpectation == nil && mmUpdate.mock.funcUpdate == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmUpdate.mock.afterUpdateCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmUpdate.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// Update implements OperationService
+func (mmUpdate *OperationServiceMock) Update(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string) (err error) {
+	mm_atomic.AddUint64(&mmUpdate.beforeUpdateCounter, 1)
+	defer mm_atomic.AddUint64(&mmUpdate.afterUpdateCounter, 1)
+
+	mmUpdate.t.Helper()
+
+	if mmUpdate.inspectFuncUpdate != nil {
+		mmUpdate.inspectFuncUpdate(ctx, id, amount, description)
+	}
+
+	mm_params := OperationServiceMockUpdateParams{ctx, id, amount, description}
+
+	// Record call args
+	mmUpdate.UpdateMock.mutex.Lock()
+	mmUpdate.UpdateMock.callArgs = append(mmUpdate.UpdateMock.callArgs, &mm_params)
+	mmUpdate.UpdateMock.mutex.Unlock()
+
+	for _, e := range mmUpdate.UpdateMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmUpdate.UpdateMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmUpdate.UpdateMock.defaultExpectation.Counter, 1)
+		mm_want := mmUpdate.UpdateMock.defaultExpectation.params
+		mm_want_ptrs := mmUpdate.UpdateMock.defaultExpectation.paramPtrs
+
+		mm_got := OperationServiceMockUpdateParams{ctx, id, amount, description}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmUpdate.t.Errorf("OperationServiceMock.Update got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdate.UpdateMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
+				mmUpdate.t.Errorf("OperationServiceMock.Update got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdate.UpdateMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
+			}
+
+			if mm_want_ptrs.amount != nil && !minimock.Equal(*mm_want_ptrs.amount, mm_got.amount) {
+				mmUpdate.t.Errorf("OperationServiceMock.Update got unexpected parameter amount, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdate.UpdateMock.defaultExpectation.expectationOrigins.originAmount, *mm_want_ptrs.amount, mm_got.amount, minimock.Diff(*mm_want_ptrs.amount, mm_got.amount))
+			}
+
+			if mm_want_ptrs.description != nil && !minimock.Equal(*mm_want_ptrs.description, mm_got.description) {
+				mmUpdate.t.Errorf("OperationServiceMock.Update got unexpected parameter description, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdate.UpdateMock.defaultExpectation.expectationOrigins.originDescription, *mm_want_ptrs.description, mm_got.description, minimock.Diff(*mm_want_ptrs.description, mm_got.description))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmUpdate.t.Errorf("OperationServiceMock.Update got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmUpdate.UpdateMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmUpdate.UpdateMock.defaultExpectation.results
+		if mm_results == nil {
+			mmUpdate.t.Fatal("No results are set for the OperationServiceMock.Update")
+		}
+		return (*mm_results).err
+	}
+	if mmUpdate.funcUpdate != nil {
+		return mmUpdate.funcUpdate(ctx, id, amount, description)
+	}
+	mmUpdate.t.Fatalf("Unexpected call to OperationServiceMock.Update. %v %v %v %v", ctx, id, amount, description)
+	return
+}
+
+// UpdateAfterCounter returns a count of finished OperationServiceMock.Update invocations
+func (mmUpdate *OperationServiceMock) UpdateAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdate.afterUpdateCounter)
+}
+
+// UpdateBeforeCounter returns a count of OperationServiceMock.Update invocations
+func (mmUpdate *OperationServiceMock) UpdateBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdate.beforeUpdateCounter)
+}
+
+// Calls returns a list of arguments used in each call to OperationServiceMock.Update.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmUpdate *mOperationServiceMockUpdate) Calls() []*OperationServiceMockUpdateParams {
+	mmUpdate.mutex.RLock()
+
+	argCopy := make([]*OperationServiceMockUpdateParams, len(mmUpdate.callArgs))
+	copy(argCopy, mmUpdate.callArgs)
+
+	mmUpdate.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockUpdateDone returns true if the count of the Update invocations corresponds
+// the number of defined expectations
+func (m *OperationServiceMock) MinimockUpdateDone() bool {
+	if m.UpdateMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.UpdateMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.UpdateMock.invocationsDone()
+}
+
+// MinimockUpdateInspect logs each unmet expectation
+func (m *OperationServiceMock) MinimockUpdateInspect() {
+	for _, e := range m.UpdateMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to OperationServiceMock.Update at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterUpdateCounter := mm_atomic.LoadUint64(&m.afterUpdateCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.UpdateMock.defaultExpectation != nil && afterUpdateCounter < 1 {
+		if m.UpdateMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to OperationServiceMock.Update at\n%s", m.UpdateMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to OperationServiceMock.Update at\n%s with params: %#v", m.UpdateMock.defaultExpectation.expectationOrigins.origin, *m.UpdateMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcUpdate != nil && afterUpdateCounter < 1 {
+		m.t.Errorf("Expected call to OperationServiceMock.Update at\n%s", m.funcUpdateOrigin)
+	}
+
+	if !m.UpdateMock.invocationsDone() && afterUpdateCounter > 0 {
+		m.t.Errorf("Expected %d calls to OperationServiceMock.Update at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.UpdateMock.expectedInvocations), m.UpdateMock.expectedInvocationsOrigin, afterUpdateCounter)
+	}
+}
+
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *OperationServiceMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
 		if !m.minimockDone() {
 			m.MinimockCreateInspect()
 
+			m.MinimockDeleteInspect()
+
 			m.MinimockGetByAccountIDInspect()
+
+			m.MinimockUpdateInspect()
 		}
 	})
 }
@@ -832,5 +1604,7 @@ func (m *OperationServiceMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockCreateDone() &&
-		m.MinimockGetByAccountIDDone()
+		m.MinimockDeleteDone() &&
+		m.MinimockGetByAccountIDDone() &&
+		m.MinimockUpdateDone()
 }

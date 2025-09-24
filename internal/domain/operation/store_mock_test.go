@@ -11,7 +11,9 @@ import (
 	mm_time "time"
 
 	"github.com/gojuno/minimock/v3"
+	"github.com/google/uuid"
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/domain/model"
+	"github.com/shopspring/decimal"
 )
 
 // StoreMock implements Store
@@ -26,12 +28,26 @@ type StoreMock struct {
 	beforeCreateCounter uint64
 	CreateMock          mStoreMockCreate
 
+	funcDelete          func(ctx context.Context, id uuid.UUID) (err error)
+	funcDeleteOrigin    string
+	inspectFuncDelete   func(ctx context.Context, id uuid.UUID)
+	afterDeleteCounter  uint64
+	beforeDeleteCounter uint64
+	DeleteMock          mStoreMockDelete
+
 	funcGetByAccountID          func(ctx context.Context, accountID int64, limit int64, offset int64) (oa1 []model.Operation, err error)
 	funcGetByAccountIDOrigin    string
 	inspectFuncGetByAccountID   func(ctx context.Context, accountID int64, limit int64, offset int64)
 	afterGetByAccountIDCounter  uint64
 	beforeGetByAccountIDCounter uint64
 	GetByAccountIDMock          mStoreMockGetByAccountID
+
+	funcUpdate          func(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string) (err error)
+	funcUpdateOrigin    string
+	inspectFuncUpdate   func(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string)
+	afterUpdateCounter  uint64
+	beforeUpdateCounter uint64
+	UpdateMock          mStoreMockUpdate
 }
 
 // NewStoreMock returns a mock for Store
@@ -45,8 +61,14 @@ func NewStoreMock(t minimock.Tester) *StoreMock {
 	m.CreateMock = mStoreMockCreate{mock: m}
 	m.CreateMock.callArgs = []*StoreMockCreateParams{}
 
+	m.DeleteMock = mStoreMockDelete{mock: m}
+	m.DeleteMock.callArgs = []*StoreMockDeleteParams{}
+
 	m.GetByAccountIDMock = mStoreMockGetByAccountID{mock: m}
 	m.GetByAccountIDMock.callArgs = []*StoreMockGetByAccountIDParams{}
+
+	m.UpdateMock = mStoreMockUpdate{mock: m}
+	m.UpdateMock.callArgs = []*StoreMockUpdateParams{}
 
 	t.Cleanup(m.MinimockFinish)
 
@@ -393,6 +415,348 @@ func (m *StoreMock) MinimockCreateInspect() {
 	if !m.CreateMock.invocationsDone() && afterCreateCounter > 0 {
 		m.t.Errorf("Expected %d calls to StoreMock.Create at\n%s but found %d calls",
 			mm_atomic.LoadUint64(&m.CreateMock.expectedInvocations), m.CreateMock.expectedInvocationsOrigin, afterCreateCounter)
+	}
+}
+
+type mStoreMockDelete struct {
+	optional           bool
+	mock               *StoreMock
+	defaultExpectation *StoreMockDeleteExpectation
+	expectations       []*StoreMockDeleteExpectation
+
+	callArgs []*StoreMockDeleteParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// StoreMockDeleteExpectation specifies expectation struct of the Store.Delete
+type StoreMockDeleteExpectation struct {
+	mock               *StoreMock
+	params             *StoreMockDeleteParams
+	paramPtrs          *StoreMockDeleteParamPtrs
+	expectationOrigins StoreMockDeleteExpectationOrigins
+	results            *StoreMockDeleteResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// StoreMockDeleteParams contains parameters of the Store.Delete
+type StoreMockDeleteParams struct {
+	ctx context.Context
+	id  uuid.UUID
+}
+
+// StoreMockDeleteParamPtrs contains pointers to parameters of the Store.Delete
+type StoreMockDeleteParamPtrs struct {
+	ctx *context.Context
+	id  *uuid.UUID
+}
+
+// StoreMockDeleteResults contains results of the Store.Delete
+type StoreMockDeleteResults struct {
+	err error
+}
+
+// StoreMockDeleteOrigins contains origins of expectations of the Store.Delete
+type StoreMockDeleteExpectationOrigins struct {
+	origin    string
+	originCtx string
+	originId  string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmDelete *mStoreMockDelete) Optional() *mStoreMockDelete {
+	mmDelete.optional = true
+	return mmDelete
+}
+
+// Expect sets up expected params for Store.Delete
+func (mmDelete *mStoreMockDelete) Expect(ctx context.Context, id uuid.UUID) *mStoreMockDelete {
+	if mmDelete.mock.funcDelete != nil {
+		mmDelete.mock.t.Fatalf("StoreMock.Delete mock is already set by Set")
+	}
+
+	if mmDelete.defaultExpectation == nil {
+		mmDelete.defaultExpectation = &StoreMockDeleteExpectation{}
+	}
+
+	if mmDelete.defaultExpectation.paramPtrs != nil {
+		mmDelete.mock.t.Fatalf("StoreMock.Delete mock is already set by ExpectParams functions")
+	}
+
+	mmDelete.defaultExpectation.params = &StoreMockDeleteParams{ctx, id}
+	mmDelete.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmDelete.expectations {
+		if minimock.Equal(e.params, mmDelete.defaultExpectation.params) {
+			mmDelete.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmDelete.defaultExpectation.params)
+		}
+	}
+
+	return mmDelete
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Store.Delete
+func (mmDelete *mStoreMockDelete) ExpectCtxParam1(ctx context.Context) *mStoreMockDelete {
+	if mmDelete.mock.funcDelete != nil {
+		mmDelete.mock.t.Fatalf("StoreMock.Delete mock is already set by Set")
+	}
+
+	if mmDelete.defaultExpectation == nil {
+		mmDelete.defaultExpectation = &StoreMockDeleteExpectation{}
+	}
+
+	if mmDelete.defaultExpectation.params != nil {
+		mmDelete.mock.t.Fatalf("StoreMock.Delete mock is already set by Expect")
+	}
+
+	if mmDelete.defaultExpectation.paramPtrs == nil {
+		mmDelete.defaultExpectation.paramPtrs = &StoreMockDeleteParamPtrs{}
+	}
+	mmDelete.defaultExpectation.paramPtrs.ctx = &ctx
+	mmDelete.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmDelete
+}
+
+// ExpectIdParam2 sets up expected param id for Store.Delete
+func (mmDelete *mStoreMockDelete) ExpectIdParam2(id uuid.UUID) *mStoreMockDelete {
+	if mmDelete.mock.funcDelete != nil {
+		mmDelete.mock.t.Fatalf("StoreMock.Delete mock is already set by Set")
+	}
+
+	if mmDelete.defaultExpectation == nil {
+		mmDelete.defaultExpectation = &StoreMockDeleteExpectation{}
+	}
+
+	if mmDelete.defaultExpectation.params != nil {
+		mmDelete.mock.t.Fatalf("StoreMock.Delete mock is already set by Expect")
+	}
+
+	if mmDelete.defaultExpectation.paramPtrs == nil {
+		mmDelete.defaultExpectation.paramPtrs = &StoreMockDeleteParamPtrs{}
+	}
+	mmDelete.defaultExpectation.paramPtrs.id = &id
+	mmDelete.defaultExpectation.expectationOrigins.originId = minimock.CallerInfo(1)
+
+	return mmDelete
+}
+
+// Inspect accepts an inspector function that has same arguments as the Store.Delete
+func (mmDelete *mStoreMockDelete) Inspect(f func(ctx context.Context, id uuid.UUID)) *mStoreMockDelete {
+	if mmDelete.mock.inspectFuncDelete != nil {
+		mmDelete.mock.t.Fatalf("Inspect function is already set for StoreMock.Delete")
+	}
+
+	mmDelete.mock.inspectFuncDelete = f
+
+	return mmDelete
+}
+
+// Return sets up results that will be returned by Store.Delete
+func (mmDelete *mStoreMockDelete) Return(err error) *StoreMock {
+	if mmDelete.mock.funcDelete != nil {
+		mmDelete.mock.t.Fatalf("StoreMock.Delete mock is already set by Set")
+	}
+
+	if mmDelete.defaultExpectation == nil {
+		mmDelete.defaultExpectation = &StoreMockDeleteExpectation{mock: mmDelete.mock}
+	}
+	mmDelete.defaultExpectation.results = &StoreMockDeleteResults{err}
+	mmDelete.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmDelete.mock
+}
+
+// Set uses given function f to mock the Store.Delete method
+func (mmDelete *mStoreMockDelete) Set(f func(ctx context.Context, id uuid.UUID) (err error)) *StoreMock {
+	if mmDelete.defaultExpectation != nil {
+		mmDelete.mock.t.Fatalf("Default expectation is already set for the Store.Delete method")
+	}
+
+	if len(mmDelete.expectations) > 0 {
+		mmDelete.mock.t.Fatalf("Some expectations are already set for the Store.Delete method")
+	}
+
+	mmDelete.mock.funcDelete = f
+	mmDelete.mock.funcDeleteOrigin = minimock.CallerInfo(1)
+	return mmDelete.mock
+}
+
+// When sets expectation for the Store.Delete which will trigger the result defined by the following
+// Then helper
+func (mmDelete *mStoreMockDelete) When(ctx context.Context, id uuid.UUID) *StoreMockDeleteExpectation {
+	if mmDelete.mock.funcDelete != nil {
+		mmDelete.mock.t.Fatalf("StoreMock.Delete mock is already set by Set")
+	}
+
+	expectation := &StoreMockDeleteExpectation{
+		mock:               mmDelete.mock,
+		params:             &StoreMockDeleteParams{ctx, id},
+		expectationOrigins: StoreMockDeleteExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmDelete.expectations = append(mmDelete.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Store.Delete return parameters for the expectation previously defined by the When method
+func (e *StoreMockDeleteExpectation) Then(err error) *StoreMock {
+	e.results = &StoreMockDeleteResults{err}
+	return e.mock
+}
+
+// Times sets number of times Store.Delete should be invoked
+func (mmDelete *mStoreMockDelete) Times(n uint64) *mStoreMockDelete {
+	if n == 0 {
+		mmDelete.mock.t.Fatalf("Times of StoreMock.Delete mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmDelete.expectedInvocations, n)
+	mmDelete.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmDelete
+}
+
+func (mmDelete *mStoreMockDelete) invocationsDone() bool {
+	if len(mmDelete.expectations) == 0 && mmDelete.defaultExpectation == nil && mmDelete.mock.funcDelete == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmDelete.mock.afterDeleteCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmDelete.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// Delete implements Store
+func (mmDelete *StoreMock) Delete(ctx context.Context, id uuid.UUID) (err error) {
+	mm_atomic.AddUint64(&mmDelete.beforeDeleteCounter, 1)
+	defer mm_atomic.AddUint64(&mmDelete.afterDeleteCounter, 1)
+
+	mmDelete.t.Helper()
+
+	if mmDelete.inspectFuncDelete != nil {
+		mmDelete.inspectFuncDelete(ctx, id)
+	}
+
+	mm_params := StoreMockDeleteParams{ctx, id}
+
+	// Record call args
+	mmDelete.DeleteMock.mutex.Lock()
+	mmDelete.DeleteMock.callArgs = append(mmDelete.DeleteMock.callArgs, &mm_params)
+	mmDelete.DeleteMock.mutex.Unlock()
+
+	for _, e := range mmDelete.DeleteMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmDelete.DeleteMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmDelete.DeleteMock.defaultExpectation.Counter, 1)
+		mm_want := mmDelete.DeleteMock.defaultExpectation.params
+		mm_want_ptrs := mmDelete.DeleteMock.defaultExpectation.paramPtrs
+
+		mm_got := StoreMockDeleteParams{ctx, id}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmDelete.t.Errorf("StoreMock.Delete got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDelete.DeleteMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
+				mmDelete.t.Errorf("StoreMock.Delete got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmDelete.DeleteMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmDelete.t.Errorf("StoreMock.Delete got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmDelete.DeleteMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmDelete.DeleteMock.defaultExpectation.results
+		if mm_results == nil {
+			mmDelete.t.Fatal("No results are set for the StoreMock.Delete")
+		}
+		return (*mm_results).err
+	}
+	if mmDelete.funcDelete != nil {
+		return mmDelete.funcDelete(ctx, id)
+	}
+	mmDelete.t.Fatalf("Unexpected call to StoreMock.Delete. %v %v", ctx, id)
+	return
+}
+
+// DeleteAfterCounter returns a count of finished StoreMock.Delete invocations
+func (mmDelete *StoreMock) DeleteAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDelete.afterDeleteCounter)
+}
+
+// DeleteBeforeCounter returns a count of StoreMock.Delete invocations
+func (mmDelete *StoreMock) DeleteBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmDelete.beforeDeleteCounter)
+}
+
+// Calls returns a list of arguments used in each call to StoreMock.Delete.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmDelete *mStoreMockDelete) Calls() []*StoreMockDeleteParams {
+	mmDelete.mutex.RLock()
+
+	argCopy := make([]*StoreMockDeleteParams, len(mmDelete.callArgs))
+	copy(argCopy, mmDelete.callArgs)
+
+	mmDelete.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockDeleteDone returns true if the count of the Delete invocations corresponds
+// the number of defined expectations
+func (m *StoreMock) MinimockDeleteDone() bool {
+	if m.DeleteMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.DeleteMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.DeleteMock.invocationsDone()
+}
+
+// MinimockDeleteInspect logs each unmet expectation
+func (m *StoreMock) MinimockDeleteInspect() {
+	for _, e := range m.DeleteMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to StoreMock.Delete at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterDeleteCounter := mm_atomic.LoadUint64(&m.afterDeleteCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.DeleteMock.defaultExpectation != nil && afterDeleteCounter < 1 {
+		if m.DeleteMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to StoreMock.Delete at\n%s", m.DeleteMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to StoreMock.Delete at\n%s with params: %#v", m.DeleteMock.defaultExpectation.expectationOrigins.origin, *m.DeleteMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcDelete != nil && afterDeleteCounter < 1 {
+		m.t.Errorf("Expected call to StoreMock.Delete at\n%s", m.funcDeleteOrigin)
+	}
+
+	if !m.DeleteMock.invocationsDone() && afterDeleteCounter > 0 {
+		m.t.Errorf("Expected %d calls to StoreMock.Delete at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.DeleteMock.expectedInvocations), m.DeleteMock.expectedInvocationsOrigin, afterDeleteCounter)
 	}
 }
 
@@ -801,13 +1165,421 @@ func (m *StoreMock) MinimockGetByAccountIDInspect() {
 	}
 }
 
+type mStoreMockUpdate struct {
+	optional           bool
+	mock               *StoreMock
+	defaultExpectation *StoreMockUpdateExpectation
+	expectations       []*StoreMockUpdateExpectation
+
+	callArgs []*StoreMockUpdateParams
+	mutex    sync.RWMutex
+
+	expectedInvocations       uint64
+	expectedInvocationsOrigin string
+}
+
+// StoreMockUpdateExpectation specifies expectation struct of the Store.Update
+type StoreMockUpdateExpectation struct {
+	mock               *StoreMock
+	params             *StoreMockUpdateParams
+	paramPtrs          *StoreMockUpdateParamPtrs
+	expectationOrigins StoreMockUpdateExpectationOrigins
+	results            *StoreMockUpdateResults
+	returnOrigin       string
+	Counter            uint64
+}
+
+// StoreMockUpdateParams contains parameters of the Store.Update
+type StoreMockUpdateParams struct {
+	ctx         context.Context
+	id          uuid.UUID
+	amount      decimal.Decimal
+	description string
+}
+
+// StoreMockUpdateParamPtrs contains pointers to parameters of the Store.Update
+type StoreMockUpdateParamPtrs struct {
+	ctx         *context.Context
+	id          *uuid.UUID
+	amount      *decimal.Decimal
+	description *string
+}
+
+// StoreMockUpdateResults contains results of the Store.Update
+type StoreMockUpdateResults struct {
+	err error
+}
+
+// StoreMockUpdateOrigins contains origins of expectations of the Store.Update
+type StoreMockUpdateExpectationOrigins struct {
+	origin            string
+	originCtx         string
+	originId          string
+	originAmount      string
+	originDescription string
+}
+
+// Marks this method to be optional. The default behavior of any method with Return() is '1 or more', meaning
+// the test will fail minimock's automatic final call check if the mocked method was not called at least once.
+// Optional() makes method check to work in '0 or more' mode.
+// It is NOT RECOMMENDED to use this option unless you really need it, as default behaviour helps to
+// catch the problems when the expected method call is totally skipped during test run.
+func (mmUpdate *mStoreMockUpdate) Optional() *mStoreMockUpdate {
+	mmUpdate.optional = true
+	return mmUpdate
+}
+
+// Expect sets up expected params for Store.Update
+func (mmUpdate *mStoreMockUpdate) Expect(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string) *mStoreMockUpdate {
+	if mmUpdate.mock.funcUpdate != nil {
+		mmUpdate.mock.t.Fatalf("StoreMock.Update mock is already set by Set")
+	}
+
+	if mmUpdate.defaultExpectation == nil {
+		mmUpdate.defaultExpectation = &StoreMockUpdateExpectation{}
+	}
+
+	if mmUpdate.defaultExpectation.paramPtrs != nil {
+		mmUpdate.mock.t.Fatalf("StoreMock.Update mock is already set by ExpectParams functions")
+	}
+
+	mmUpdate.defaultExpectation.params = &StoreMockUpdateParams{ctx, id, amount, description}
+	mmUpdate.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
+	for _, e := range mmUpdate.expectations {
+		if minimock.Equal(e.params, mmUpdate.defaultExpectation.params) {
+			mmUpdate.mock.t.Fatalf("Expectation set by When has same params: %#v", *mmUpdate.defaultExpectation.params)
+		}
+	}
+
+	return mmUpdate
+}
+
+// ExpectCtxParam1 sets up expected param ctx for Store.Update
+func (mmUpdate *mStoreMockUpdate) ExpectCtxParam1(ctx context.Context) *mStoreMockUpdate {
+	if mmUpdate.mock.funcUpdate != nil {
+		mmUpdate.mock.t.Fatalf("StoreMock.Update mock is already set by Set")
+	}
+
+	if mmUpdate.defaultExpectation == nil {
+		mmUpdate.defaultExpectation = &StoreMockUpdateExpectation{}
+	}
+
+	if mmUpdate.defaultExpectation.params != nil {
+		mmUpdate.mock.t.Fatalf("StoreMock.Update mock is already set by Expect")
+	}
+
+	if mmUpdate.defaultExpectation.paramPtrs == nil {
+		mmUpdate.defaultExpectation.paramPtrs = &StoreMockUpdateParamPtrs{}
+	}
+	mmUpdate.defaultExpectation.paramPtrs.ctx = &ctx
+	mmUpdate.defaultExpectation.expectationOrigins.originCtx = minimock.CallerInfo(1)
+
+	return mmUpdate
+}
+
+// ExpectIdParam2 sets up expected param id for Store.Update
+func (mmUpdate *mStoreMockUpdate) ExpectIdParam2(id uuid.UUID) *mStoreMockUpdate {
+	if mmUpdate.mock.funcUpdate != nil {
+		mmUpdate.mock.t.Fatalf("StoreMock.Update mock is already set by Set")
+	}
+
+	if mmUpdate.defaultExpectation == nil {
+		mmUpdate.defaultExpectation = &StoreMockUpdateExpectation{}
+	}
+
+	if mmUpdate.defaultExpectation.params != nil {
+		mmUpdate.mock.t.Fatalf("StoreMock.Update mock is already set by Expect")
+	}
+
+	if mmUpdate.defaultExpectation.paramPtrs == nil {
+		mmUpdate.defaultExpectation.paramPtrs = &StoreMockUpdateParamPtrs{}
+	}
+	mmUpdate.defaultExpectation.paramPtrs.id = &id
+	mmUpdate.defaultExpectation.expectationOrigins.originId = minimock.CallerInfo(1)
+
+	return mmUpdate
+}
+
+// ExpectAmountParam3 sets up expected param amount for Store.Update
+func (mmUpdate *mStoreMockUpdate) ExpectAmountParam3(amount decimal.Decimal) *mStoreMockUpdate {
+	if mmUpdate.mock.funcUpdate != nil {
+		mmUpdate.mock.t.Fatalf("StoreMock.Update mock is already set by Set")
+	}
+
+	if mmUpdate.defaultExpectation == nil {
+		mmUpdate.defaultExpectation = &StoreMockUpdateExpectation{}
+	}
+
+	if mmUpdate.defaultExpectation.params != nil {
+		mmUpdate.mock.t.Fatalf("StoreMock.Update mock is already set by Expect")
+	}
+
+	if mmUpdate.defaultExpectation.paramPtrs == nil {
+		mmUpdate.defaultExpectation.paramPtrs = &StoreMockUpdateParamPtrs{}
+	}
+	mmUpdate.defaultExpectation.paramPtrs.amount = &amount
+	mmUpdate.defaultExpectation.expectationOrigins.originAmount = minimock.CallerInfo(1)
+
+	return mmUpdate
+}
+
+// ExpectDescriptionParam4 sets up expected param description for Store.Update
+func (mmUpdate *mStoreMockUpdate) ExpectDescriptionParam4(description string) *mStoreMockUpdate {
+	if mmUpdate.mock.funcUpdate != nil {
+		mmUpdate.mock.t.Fatalf("StoreMock.Update mock is already set by Set")
+	}
+
+	if mmUpdate.defaultExpectation == nil {
+		mmUpdate.defaultExpectation = &StoreMockUpdateExpectation{}
+	}
+
+	if mmUpdate.defaultExpectation.params != nil {
+		mmUpdate.mock.t.Fatalf("StoreMock.Update mock is already set by Expect")
+	}
+
+	if mmUpdate.defaultExpectation.paramPtrs == nil {
+		mmUpdate.defaultExpectation.paramPtrs = &StoreMockUpdateParamPtrs{}
+	}
+	mmUpdate.defaultExpectation.paramPtrs.description = &description
+	mmUpdate.defaultExpectation.expectationOrigins.originDescription = minimock.CallerInfo(1)
+
+	return mmUpdate
+}
+
+// Inspect accepts an inspector function that has same arguments as the Store.Update
+func (mmUpdate *mStoreMockUpdate) Inspect(f func(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string)) *mStoreMockUpdate {
+	if mmUpdate.mock.inspectFuncUpdate != nil {
+		mmUpdate.mock.t.Fatalf("Inspect function is already set for StoreMock.Update")
+	}
+
+	mmUpdate.mock.inspectFuncUpdate = f
+
+	return mmUpdate
+}
+
+// Return sets up results that will be returned by Store.Update
+func (mmUpdate *mStoreMockUpdate) Return(err error) *StoreMock {
+	if mmUpdate.mock.funcUpdate != nil {
+		mmUpdate.mock.t.Fatalf("StoreMock.Update mock is already set by Set")
+	}
+
+	if mmUpdate.defaultExpectation == nil {
+		mmUpdate.defaultExpectation = &StoreMockUpdateExpectation{mock: mmUpdate.mock}
+	}
+	mmUpdate.defaultExpectation.results = &StoreMockUpdateResults{err}
+	mmUpdate.defaultExpectation.returnOrigin = minimock.CallerInfo(1)
+	return mmUpdate.mock
+}
+
+// Set uses given function f to mock the Store.Update method
+func (mmUpdate *mStoreMockUpdate) Set(f func(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string) (err error)) *StoreMock {
+	if mmUpdate.defaultExpectation != nil {
+		mmUpdate.mock.t.Fatalf("Default expectation is already set for the Store.Update method")
+	}
+
+	if len(mmUpdate.expectations) > 0 {
+		mmUpdate.mock.t.Fatalf("Some expectations are already set for the Store.Update method")
+	}
+
+	mmUpdate.mock.funcUpdate = f
+	mmUpdate.mock.funcUpdateOrigin = minimock.CallerInfo(1)
+	return mmUpdate.mock
+}
+
+// When sets expectation for the Store.Update which will trigger the result defined by the following
+// Then helper
+func (mmUpdate *mStoreMockUpdate) When(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string) *StoreMockUpdateExpectation {
+	if mmUpdate.mock.funcUpdate != nil {
+		mmUpdate.mock.t.Fatalf("StoreMock.Update mock is already set by Set")
+	}
+
+	expectation := &StoreMockUpdateExpectation{
+		mock:               mmUpdate.mock,
+		params:             &StoreMockUpdateParams{ctx, id, amount, description},
+		expectationOrigins: StoreMockUpdateExpectationOrigins{origin: minimock.CallerInfo(1)},
+	}
+	mmUpdate.expectations = append(mmUpdate.expectations, expectation)
+	return expectation
+}
+
+// Then sets up Store.Update return parameters for the expectation previously defined by the When method
+func (e *StoreMockUpdateExpectation) Then(err error) *StoreMock {
+	e.results = &StoreMockUpdateResults{err}
+	return e.mock
+}
+
+// Times sets number of times Store.Update should be invoked
+func (mmUpdate *mStoreMockUpdate) Times(n uint64) *mStoreMockUpdate {
+	if n == 0 {
+		mmUpdate.mock.t.Fatalf("Times of StoreMock.Update mock can not be zero")
+	}
+	mm_atomic.StoreUint64(&mmUpdate.expectedInvocations, n)
+	mmUpdate.expectedInvocationsOrigin = minimock.CallerInfo(1)
+	return mmUpdate
+}
+
+func (mmUpdate *mStoreMockUpdate) invocationsDone() bool {
+	if len(mmUpdate.expectations) == 0 && mmUpdate.defaultExpectation == nil && mmUpdate.mock.funcUpdate == nil {
+		return true
+	}
+
+	totalInvocations := mm_atomic.LoadUint64(&mmUpdate.mock.afterUpdateCounter)
+	expectedInvocations := mm_atomic.LoadUint64(&mmUpdate.expectedInvocations)
+
+	return totalInvocations > 0 && (expectedInvocations == 0 || expectedInvocations == totalInvocations)
+}
+
+// Update implements Store
+func (mmUpdate *StoreMock) Update(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string) (err error) {
+	mm_atomic.AddUint64(&mmUpdate.beforeUpdateCounter, 1)
+	defer mm_atomic.AddUint64(&mmUpdate.afterUpdateCounter, 1)
+
+	mmUpdate.t.Helper()
+
+	if mmUpdate.inspectFuncUpdate != nil {
+		mmUpdate.inspectFuncUpdate(ctx, id, amount, description)
+	}
+
+	mm_params := StoreMockUpdateParams{ctx, id, amount, description}
+
+	// Record call args
+	mmUpdate.UpdateMock.mutex.Lock()
+	mmUpdate.UpdateMock.callArgs = append(mmUpdate.UpdateMock.callArgs, &mm_params)
+	mmUpdate.UpdateMock.mutex.Unlock()
+
+	for _, e := range mmUpdate.UpdateMock.expectations {
+		if minimock.Equal(*e.params, mm_params) {
+			mm_atomic.AddUint64(&e.Counter, 1)
+			return e.results.err
+		}
+	}
+
+	if mmUpdate.UpdateMock.defaultExpectation != nil {
+		mm_atomic.AddUint64(&mmUpdate.UpdateMock.defaultExpectation.Counter, 1)
+		mm_want := mmUpdate.UpdateMock.defaultExpectation.params
+		mm_want_ptrs := mmUpdate.UpdateMock.defaultExpectation.paramPtrs
+
+		mm_got := StoreMockUpdateParams{ctx, id, amount, description}
+
+		if mm_want_ptrs != nil {
+
+			if mm_want_ptrs.ctx != nil && !minimock.Equal(*mm_want_ptrs.ctx, mm_got.ctx) {
+				mmUpdate.t.Errorf("StoreMock.Update got unexpected parameter ctx, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdate.UpdateMock.defaultExpectation.expectationOrigins.originCtx, *mm_want_ptrs.ctx, mm_got.ctx, minimock.Diff(*mm_want_ptrs.ctx, mm_got.ctx))
+			}
+
+			if mm_want_ptrs.id != nil && !minimock.Equal(*mm_want_ptrs.id, mm_got.id) {
+				mmUpdate.t.Errorf("StoreMock.Update got unexpected parameter id, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdate.UpdateMock.defaultExpectation.expectationOrigins.originId, *mm_want_ptrs.id, mm_got.id, minimock.Diff(*mm_want_ptrs.id, mm_got.id))
+			}
+
+			if mm_want_ptrs.amount != nil && !minimock.Equal(*mm_want_ptrs.amount, mm_got.amount) {
+				mmUpdate.t.Errorf("StoreMock.Update got unexpected parameter amount, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdate.UpdateMock.defaultExpectation.expectationOrigins.originAmount, *mm_want_ptrs.amount, mm_got.amount, minimock.Diff(*mm_want_ptrs.amount, mm_got.amount))
+			}
+
+			if mm_want_ptrs.description != nil && !minimock.Equal(*mm_want_ptrs.description, mm_got.description) {
+				mmUpdate.t.Errorf("StoreMock.Update got unexpected parameter description, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdate.UpdateMock.defaultExpectation.expectationOrigins.originDescription, *mm_want_ptrs.description, mm_got.description, minimock.Diff(*mm_want_ptrs.description, mm_got.description))
+			}
+
+		} else if mm_want != nil && !minimock.Equal(*mm_want, mm_got) {
+			mmUpdate.t.Errorf("StoreMock.Update got unexpected parameters, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+				mmUpdate.UpdateMock.defaultExpectation.expectationOrigins.origin, *mm_want, mm_got, minimock.Diff(*mm_want, mm_got))
+		}
+
+		mm_results := mmUpdate.UpdateMock.defaultExpectation.results
+		if mm_results == nil {
+			mmUpdate.t.Fatal("No results are set for the StoreMock.Update")
+		}
+		return (*mm_results).err
+	}
+	if mmUpdate.funcUpdate != nil {
+		return mmUpdate.funcUpdate(ctx, id, amount, description)
+	}
+	mmUpdate.t.Fatalf("Unexpected call to StoreMock.Update. %v %v %v %v", ctx, id, amount, description)
+	return
+}
+
+// UpdateAfterCounter returns a count of finished StoreMock.Update invocations
+func (mmUpdate *StoreMock) UpdateAfterCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdate.afterUpdateCounter)
+}
+
+// UpdateBeforeCounter returns a count of StoreMock.Update invocations
+func (mmUpdate *StoreMock) UpdateBeforeCounter() uint64 {
+	return mm_atomic.LoadUint64(&mmUpdate.beforeUpdateCounter)
+}
+
+// Calls returns a list of arguments used in each call to StoreMock.Update.
+// The list is in the same order as the calls were made (i.e. recent calls have a higher index)
+func (mmUpdate *mStoreMockUpdate) Calls() []*StoreMockUpdateParams {
+	mmUpdate.mutex.RLock()
+
+	argCopy := make([]*StoreMockUpdateParams, len(mmUpdate.callArgs))
+	copy(argCopy, mmUpdate.callArgs)
+
+	mmUpdate.mutex.RUnlock()
+
+	return argCopy
+}
+
+// MinimockUpdateDone returns true if the count of the Update invocations corresponds
+// the number of defined expectations
+func (m *StoreMock) MinimockUpdateDone() bool {
+	if m.UpdateMock.optional {
+		// Optional methods provide '0 or more' call count restriction.
+		return true
+	}
+
+	for _, e := range m.UpdateMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			return false
+		}
+	}
+
+	return m.UpdateMock.invocationsDone()
+}
+
+// MinimockUpdateInspect logs each unmet expectation
+func (m *StoreMock) MinimockUpdateInspect() {
+	for _, e := range m.UpdateMock.expectations {
+		if mm_atomic.LoadUint64(&e.Counter) < 1 {
+			m.t.Errorf("Expected call to StoreMock.Update at\n%s with params: %#v", e.expectationOrigins.origin, *e.params)
+		}
+	}
+
+	afterUpdateCounter := mm_atomic.LoadUint64(&m.afterUpdateCounter)
+	// if default expectation was set then invocations count should be greater than zero
+	if m.UpdateMock.defaultExpectation != nil && afterUpdateCounter < 1 {
+		if m.UpdateMock.defaultExpectation.params == nil {
+			m.t.Errorf("Expected call to StoreMock.Update at\n%s", m.UpdateMock.defaultExpectation.returnOrigin)
+		} else {
+			m.t.Errorf("Expected call to StoreMock.Update at\n%s with params: %#v", m.UpdateMock.defaultExpectation.expectationOrigins.origin, *m.UpdateMock.defaultExpectation.params)
+		}
+	}
+	// if func was set then invocations count should be greater than zero
+	if m.funcUpdate != nil && afterUpdateCounter < 1 {
+		m.t.Errorf("Expected call to StoreMock.Update at\n%s", m.funcUpdateOrigin)
+	}
+
+	if !m.UpdateMock.invocationsDone() && afterUpdateCounter > 0 {
+		m.t.Errorf("Expected %d calls to StoreMock.Update at\n%s but found %d calls",
+			mm_atomic.LoadUint64(&m.UpdateMock.expectedInvocations), m.UpdateMock.expectedInvocationsOrigin, afterUpdateCounter)
+	}
+}
+
 // MinimockFinish checks that all mocked methods have been called the expected number of times
 func (m *StoreMock) MinimockFinish() {
 	m.finishOnce.Do(func() {
 		if !m.minimockDone() {
 			m.MinimockCreateInspect()
 
+			m.MinimockDeleteInspect()
+
 			m.MinimockGetByAccountIDInspect()
+
+			m.MinimockUpdateInspect()
 		}
 	})
 }
@@ -832,5 +1604,7 @@ func (m *StoreMock) minimockDone() bool {
 	done := true
 	return done &&
 		m.MinimockCreateDone() &&
-		m.MinimockGetByAccountIDDone()
+		m.MinimockDeleteDone() &&
+		m.MinimockGetByAccountIDDone() &&
+		m.MinimockUpdateDone()
 }
