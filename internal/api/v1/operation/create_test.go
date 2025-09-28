@@ -51,6 +51,7 @@ func TestHandler_Create(t *testing.T) {
 					UserID:      userID,
 					AccountID:   10,
 					Type:        model.OperationTypeDebit,
+					CategoryID:  5,
 					Amount:      decimal.NewFromFloat(160.5),
 					Description: "Salary",
 					CreateTime:  now,
@@ -61,6 +62,7 @@ func TestHandler_Create(t *testing.T) {
 						UserID:      operation.UserID,
 						AccountID:   operation.AccountID,
 						Type:        operation.Type,
+						CategoryID:  operation.CategoryID,
 						Amount:      operation.Amount,
 						Description: operation.Description,
 					}).
@@ -99,6 +101,7 @@ func TestHandler_Create(t *testing.T) {
 					UserID:      userID,
 					AccountID:   10,
 					Type:        model.OperationTypeDebit,
+					CategoryID:  5,
 					Amount:      decimal.NewFromFloat(160.5),
 					Description: "Salary",
 					CreateTime:  now,
@@ -109,6 +112,7 @@ func TestHandler_Create(t *testing.T) {
 						UserID:      operation.UserID,
 						AccountID:   operation.AccountID,
 						Type:        operation.Type,
+						CategoryID:  operation.CategoryID,
 						Amount:      operation.Amount,
 						Description: operation.Description,
 					}).

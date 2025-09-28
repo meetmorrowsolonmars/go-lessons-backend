@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	_ "embed"
 	"fmt"
 	"time"
@@ -52,6 +53,10 @@ func (s *OperationStore) Create(ctx context.Context, operation model.Operation) 
 
 	operation.ID = id
 	operation.CreateTime = s.now()
+	categoryID := sql.NullInt64{
+		Int64: operation.CategoryID,
+		Valid: operation.CategoryID != 0,
+	}
 
 	_, err = s.db.Exec(
 		ctx,
@@ -60,6 +65,7 @@ func (s *OperationStore) Create(ctx context.Context, operation model.Operation) 
 		operation.UserID,
 		operation.AccountID,
 		operation.Type,
+		categoryID,
 		operation.Amount,
 		operation.Description,
 		operation.CreateTime,
@@ -71,8 +77,19 @@ func (s *OperationStore) Create(ctx context.Context, operation model.Operation) 
 	return operation, nil
 }
 
-func (s *OperationStore) Update(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string) error {
-	result, err := s.db.Exec(ctx, updateOperationQuery, id, amount, description)
+func (s *OperationStore) Update(
+	ctx context.Context,
+	id uuid.UUID,
+	amount decimal.Decimal,
+	categoryID int64,
+	description string,
+) error {
+	sqlCategoryID := sql.NullInt64{
+		Int64: categoryID,
+		Valid: categoryID != 0,
+	}
+
+	result, err := s.db.Exec(ctx, updateOperationQuery, id, amount, description, sqlCategoryID)
 	if err != nil {
 		return fmt.Errorf("update operation: %w", err)
 	}
@@ -114,12 +131,14 @@ func (s *OperationStore) GetByAccountID(
 
 	for rows.Next() {
 		var operation model.Operation
+		var categoryID sql.NullInt64
 
 		err = rows.Scan(
 			&operation.ID,
 			&operation.UserID,
 			&operation.AccountID,
 			&operation.Type,
+			&categoryID,
 			&operation.Amount,
 			&operation.Description,
 			&operation.CreateTime,
@@ -127,6 +146,8 @@ func (s *OperationStore) GetByAccountID(
 		if err != nil {
 			return nil, fmt.Errorf("get operations by account id: %w", err)
 		}
+
+		operation.CategoryID = categoryID.Int64
 
 		operations = append(operations, operation)
 	}

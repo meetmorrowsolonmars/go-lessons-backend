@@ -13,6 +13,7 @@ import (
 
 type CreateRequest struct {
 	AccountID   int64           `json:"account_id"`
+	CategoryID  int64           `json:"category_id,omitempty"`
 	Type        string          `json:"type"`
 	Amount      decimal.Decimal `json:"amount"`
 	Description string          `json:"description"`
@@ -39,6 +40,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		UserID:      claims.UserID,
 		AccountID:   req.AccountID,
 		Type:        model.OperationType(req.Type),
+		CategoryID:  req.CategoryID,
 		Amount:      req.Amount,
 		Description: req.Description,
 	})

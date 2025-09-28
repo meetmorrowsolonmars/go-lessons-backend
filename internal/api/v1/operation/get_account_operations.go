@@ -74,6 +74,7 @@ func (h *Handler) GetAccountOperations(w http.ResponseWriter, r *http.Request) {
 			UserID:      operation.UserID,
 			AccountID:   operation.AccountID,
 			Type:        string(operation.Type),
+			CategoryID:  operation.CategoryID,
 			Amount:      operation.Amount,
 			Description: operation.Description,
 			CreateTime:  operation.CreateTime,

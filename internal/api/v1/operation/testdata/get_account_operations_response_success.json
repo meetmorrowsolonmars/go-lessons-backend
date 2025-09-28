@@ -5,6 +5,7 @@
       "user_id": 10,
       "account_id": 10,
       "type": "debit",
+      "category_id": 5,
       "amount": "160.5",
       "description": "Salary",
       "create_time": "2025-09-10T00:00:00Z"

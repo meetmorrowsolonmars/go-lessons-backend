@@ -11,6 +11,7 @@ import (
 
 type UpdateRequest struct {
 	Amount      decimal.Decimal `json:"amount"`
+	CategoryID  int64           `json:"category_id,omitempty"`
 	Description string          `json:"description"`
 }
 
@@ -35,7 +36,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.operationService.Update(r.Context(), operationID, req.Amount, req.Description)
+	err = h.operationService.Update(r.Context(), operationID, req.Amount, req.CategoryID, req.Description)
 	// TODO: Handle error.
 	if err != nil {
 		h.logger.Error("Update operation", slog.String("error", err.Error()))

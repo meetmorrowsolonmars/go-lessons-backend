@@ -51,8 +51,14 @@ func (s *Service) Create(ctx context.Context, operation model.Operation) (model.
 	return operation, nil
 }
 
-func (s *Service) Update(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string) error {
-	err := s.store.Update(ctx, id, amount, description)
+func (s *Service) Update(
+	ctx context.Context,
+	id uuid.UUID,
+	amount decimal.Decimal,
+	categoryID int64,
+	description string,
+) error {
+	err := s.store.Update(ctx, id, amount, categoryID, description)
 	if err != nil {
 		return fmt.Errorf("update operation: %w", err)
 	}

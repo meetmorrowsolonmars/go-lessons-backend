@@ -42,9 +42,9 @@ type StoreMock struct {
 	beforeGetByAccountIDCounter uint64
 	GetByAccountIDMock          mStoreMockGetByAccountID
 
-	funcUpdate          func(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string) (err error)
+	funcUpdate          func(ctx context.Context, id uuid.UUID, amount decimal.Decimal, categoryID int64, description string) (err error)
 	funcUpdateOrigin    string
-	inspectFuncUpdate   func(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string)
+	inspectFuncUpdate   func(ctx context.Context, id uuid.UUID, amount decimal.Decimal, categoryID int64, description string)
 	afterUpdateCounter  uint64
 	beforeUpdateCounter uint64
 	UpdateMock          mStoreMockUpdate
@@ -1194,6 +1194,7 @@ type StoreMockUpdateParams struct {
 	ctx         context.Context
 	id          uuid.UUID
 	amount      decimal.Decimal
+	categoryID  int64
 	description string
 }
 
@@ -1202,6 +1203,7 @@ type StoreMockUpdateParamPtrs struct {
 	ctx         *context.Context
 	id          *uuid.UUID
 	amount      *decimal.Decimal
+	categoryID  *int64
 	description *string
 }
 
@@ -1216,6 +1218,7 @@ type StoreMockUpdateExpectationOrigins struct {
 	originCtx         string
 	originId          string
 	originAmount      string
+	originCategoryID  string
 	originDescription string
 }
 
@@ -1230,7 +1233,7 @@ func (mmUpdate *mStoreMockUpdate) Optional() *mStoreMockUpdate {
 }
 
 // Expect sets up expected params for Store.Update
-func (mmUpdate *mStoreMockUpdate) Expect(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string) *mStoreMockUpdate {
+func (mmUpdate *mStoreMockUpdate) Expect(ctx context.Context, id uuid.UUID, amount decimal.Decimal, categoryID int64, description string) *mStoreMockUpdate {
 	if mmUpdate.mock.funcUpdate != nil {
 		mmUpdate.mock.t.Fatalf("StoreMock.Update mock is already set by Set")
 	}
@@ -1243,7 +1246,7 @@ func (mmUpdate *mStoreMockUpdate) Expect(ctx context.Context, id uuid.UUID, amou
 		mmUpdate.mock.t.Fatalf("StoreMock.Update mock is already set by ExpectParams functions")
 	}
 
-	mmUpdate.defaultExpectation.params = &StoreMockUpdateParams{ctx, id, amount, description}
+	mmUpdate.defaultExpectation.params = &StoreMockUpdateParams{ctx, id, amount, categoryID, description}
 	mmUpdate.defaultExpectation.expectationOrigins.origin = minimock.CallerInfo(1)
 	for _, e := range mmUpdate.expectations {
 		if minimock.Equal(e.params, mmUpdate.defaultExpectation.params) {
@@ -1323,8 +1326,31 @@ func (mmUpdate *mStoreMockUpdate) ExpectAmountParam3(amount decimal.Decimal) *mS
 	return mmUpdate
 }
 
-// ExpectDescriptionParam4 sets up expected param description for Store.Update
-func (mmUpdate *mStoreMockUpdate) ExpectDescriptionParam4(description string) *mStoreMockUpdate {
+// ExpectCategoryIDParam4 sets up expected param categoryID for Store.Update
+func (mmUpdate *mStoreMockUpdate) ExpectCategoryIDParam4(categoryID int64) *mStoreMockUpdate {
+	if mmUpdate.mock.funcUpdate != nil {
+		mmUpdate.mock.t.Fatalf("StoreMock.Update mock is already set by Set")
+	}
+
+	if mmUpdate.defaultExpectation == nil {
+		mmUpdate.defaultExpectation = &StoreMockUpdateExpectation{}
+	}
+
+	if mmUpdate.defaultExpectation.params != nil {
+		mmUpdate.mock.t.Fatalf("StoreMock.Update mock is already set by Expect")
+	}
+
+	if mmUpdate.defaultExpectation.paramPtrs == nil {
+		mmUpdate.defaultExpectation.paramPtrs = &StoreMockUpdateParamPtrs{}
+	}
+	mmUpdate.defaultExpectation.paramPtrs.categoryID = &categoryID
+	mmUpdate.defaultExpectation.expectationOrigins.originCategoryID = minimock.CallerInfo(1)
+
+	return mmUpdate
+}
+
+// ExpectDescriptionParam5 sets up expected param description for Store.Update
+func (mmUpdate *mStoreMockUpdate) ExpectDescriptionParam5(description string) *mStoreMockUpdate {
 	if mmUpdate.mock.funcUpdate != nil {
 		mmUpdate.mock.t.Fatalf("StoreMock.Update mock is already set by Set")
 	}
@@ -1347,7 +1373,7 @@ func (mmUpdate *mStoreMockUpdate) ExpectDescriptionParam4(description string) *m
 }
 
 // Inspect accepts an inspector function that has same arguments as the Store.Update
-func (mmUpdate *mStoreMockUpdate) Inspect(f func(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string)) *mStoreMockUpdate {
+func (mmUpdate *mStoreMockUpdate) Inspect(f func(ctx context.Context, id uuid.UUID, amount decimal.Decimal, categoryID int64, description string)) *mStoreMockUpdate {
 	if mmUpdate.mock.inspectFuncUpdate != nil {
 		mmUpdate.mock.t.Fatalf("Inspect function is already set for StoreMock.Update")
 	}
@@ -1372,7 +1398,7 @@ func (mmUpdate *mStoreMockUpdate) Return(err error) *StoreMock {
 }
 
 // Set uses given function f to mock the Store.Update method
-func (mmUpdate *mStoreMockUpdate) Set(f func(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string) (err error)) *StoreMock {
+func (mmUpdate *mStoreMockUpdate) Set(f func(ctx context.Context, id uuid.UUID, amount decimal.Decimal, categoryID int64, description string) (err error)) *StoreMock {
 	if mmUpdate.defaultExpectation != nil {
 		mmUpdate.mock.t.Fatalf("Default expectation is already set for the Store.Update method")
 	}
@@ -1388,14 +1414,14 @@ func (mmUpdate *mStoreMockUpdate) Set(f func(ctx context.Context, id uuid.UUID, 
 
 // When sets expectation for the Store.Update which will trigger the result defined by the following
 // Then helper
-func (mmUpdate *mStoreMockUpdate) When(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string) *StoreMockUpdateExpectation {
+func (mmUpdate *mStoreMockUpdate) When(ctx context.Context, id uuid.UUID, amount decimal.Decimal, categoryID int64, description string) *StoreMockUpdateExpectation {
 	if mmUpdate.mock.funcUpdate != nil {
 		mmUpdate.mock.t.Fatalf("StoreMock.Update mock is already set by Set")
 	}
 
 	expectation := &StoreMockUpdateExpectation{
 		mock:               mmUpdate.mock,
-		params:             &StoreMockUpdateParams{ctx, id, amount, description},
+		params:             &StoreMockUpdateParams{ctx, id, amount, categoryID, description},
 		expectationOrigins: StoreMockUpdateExpectationOrigins{origin: minimock.CallerInfo(1)},
 	}
 	mmUpdate.expectations = append(mmUpdate.expectations, expectation)
@@ -1430,17 +1456,17 @@ func (mmUpdate *mStoreMockUpdate) invocationsDone() bool {
 }
 
 // Update implements Store
-func (mmUpdate *StoreMock) Update(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string) (err error) {
+func (mmUpdate *StoreMock) Update(ctx context.Context, id uuid.UUID, amount decimal.Decimal, categoryID int64, description string) (err error) {
 	mm_atomic.AddUint64(&mmUpdate.beforeUpdateCounter, 1)
 	defer mm_atomic.AddUint64(&mmUpdate.afterUpdateCounter, 1)
 
 	mmUpdate.t.Helper()
 
 	if mmUpdate.inspectFuncUpdate != nil {
-		mmUpdate.inspectFuncUpdate(ctx, id, amount, description)
+		mmUpdate.inspectFuncUpdate(ctx, id, amount, categoryID, description)
 	}
 
-	mm_params := StoreMockUpdateParams{ctx, id, amount, description}
+	mm_params := StoreMockUpdateParams{ctx, id, amount, categoryID, description}
 
 	// Record call args
 	mmUpdate.UpdateMock.mutex.Lock()
@@ -1459,7 +1485,7 @@ func (mmUpdate *StoreMock) Update(ctx context.Context, id uuid.UUID, amount deci
 		mm_want := mmUpdate.UpdateMock.defaultExpectation.params
 		mm_want_ptrs := mmUpdate.UpdateMock.defaultExpectation.paramPtrs
 
-		mm_got := StoreMockUpdateParams{ctx, id, amount, description}
+		mm_got := StoreMockUpdateParams{ctx, id, amount, categoryID, description}
 
 		if mm_want_ptrs != nil {
 
@@ -1476,6 +1502,11 @@ func (mmUpdate *StoreMock) Update(ctx context.Context, id uuid.UUID, amount deci
 			if mm_want_ptrs.amount != nil && !minimock.Equal(*mm_want_ptrs.amount, mm_got.amount) {
 				mmUpdate.t.Errorf("StoreMock.Update got unexpected parameter amount, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
 					mmUpdate.UpdateMock.defaultExpectation.expectationOrigins.originAmount, *mm_want_ptrs.amount, mm_got.amount, minimock.Diff(*mm_want_ptrs.amount, mm_got.amount))
+			}
+
+			if mm_want_ptrs.categoryID != nil && !minimock.Equal(*mm_want_ptrs.categoryID, mm_got.categoryID) {
+				mmUpdate.t.Errorf("StoreMock.Update got unexpected parameter categoryID, expected at\n%s:\nwant: %#v\n got: %#v%s\n",
+					mmUpdate.UpdateMock.defaultExpectation.expectationOrigins.originCategoryID, *mm_want_ptrs.categoryID, mm_got.categoryID, minimock.Diff(*mm_want_ptrs.categoryID, mm_got.categoryID))
 			}
 
 			if mm_want_ptrs.description != nil && !minimock.Equal(*mm_want_ptrs.description, mm_got.description) {
@@ -1495,9 +1526,9 @@ func (mmUpdate *StoreMock) Update(ctx context.Context, id uuid.UUID, amount deci
 		return (*mm_results).err
 	}
 	if mmUpdate.funcUpdate != nil {
-		return mmUpdate.funcUpdate(ctx, id, amount, description)
+		return mmUpdate.funcUpdate(ctx, id, amount, categoryID, description)
 	}
-	mmUpdate.t.Fatalf("Unexpected call to StoreMock.Update. %v %v %v %v", ctx, id, amount, description)
+	mmUpdate.t.Fatalf("Unexpected call to StoreMock.Update. %v %v %v %v %v", ctx, id, amount, categoryID, description)
 	return
 }
 

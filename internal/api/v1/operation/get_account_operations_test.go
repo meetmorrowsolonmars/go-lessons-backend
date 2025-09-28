@@ -47,6 +47,7 @@ func TestHandler_GetAccountOperations(t *testing.T) {
 						UserID:      10,
 						AccountID:   10,
 						Type:        model.OperationTypeDebit,
+						CategoryID:  5,
 						Amount:      decimal.NewFromFloat(160.5),
 						Description: "Salary",
 						CreateTime:  now,

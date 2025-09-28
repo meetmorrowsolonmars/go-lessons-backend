@@ -4,6 +4,7 @@ package postgres
 
 import (
 	"context"
+	"database/sql"
 	_ "embed"
 	"testing"
 	"time"
@@ -18,6 +19,9 @@ import (
 var (
 	//go:embed testdata/create_test_operations.sql
 	createTestOperationsQuery string
+
+	//go:embed testdata/create_test_categories.sql
+	createTestCategoriesQuery string
 )
 
 func TestOperationStore_Create(t *testing.T) {
@@ -45,12 +49,15 @@ func TestOperationStore_Create(t *testing.T) {
 				assert.NoError(t, err)
 				_, err = db.Exec(ctx, createTestAccountsQuery)
 				assert.NoError(t, err)
+				_, err = db.Exec(ctx, createTestCategoriesQuery)
+				assert.NoError(t, err)
 
 				// Act.
 				operation := model.Operation{
 					UserID:      1,
 					AccountID:   1,
 					Type:        model.OperationTypeDebit,
+					CategoryID:  5,
 					Amount:      decimal.NewFromFloat(100.55),
 					Description: "Salary",
 				}
@@ -63,23 +70,26 @@ func TestOperationStore_Create(t *testing.T) {
 				row := db.QueryRow(ctx, getOperationByIdQuery, gotOperation.ID)
 
 				var expected model.Operation
+				var sqlCategoryID sql.NullInt64
 				err = row.Scan(
 					&expected.ID,
 					&expected.UserID,
 					&expected.AccountID,
 					&expected.Type,
+					&sqlCategoryID,
 					&expected.Amount,
 					&expected.Description,
 					&expected.CreateTime,
 				)
 				assert.NoError(t, err)
 
+				expected.CategoryID = sqlCategoryID.Int64
 				expected.CreateTime = expected.CreateTime.UTC()
 
 				assert.Equal(t, expected, gotOperation)
 
 				// Cleanup.
-				_, err = db.Exec(ctx, "TRUNCATE TABLE users, accounts, operations;")
+				_, err = db.Exec(ctx, "TRUNCATE TABLE users, accounts, operations, categories;")
 				assert.NoError(t, err)
 			},
 		},
@@ -119,12 +129,15 @@ func TestOperationStore_Update(t *testing.T) {
 				assert.NoError(t, err)
 				_, err = db.Exec(ctx, createTestOperationsQuery)
 				assert.NoError(t, err)
+				_, err = db.Exec(ctx, createTestCategoriesQuery)
+				assert.NoError(t, err)
 
 				// Act.
 				amount := decimal.NewFromFloat(300.55)
+				categoryID := int64(0)
 				description := "Crypto"
 
-				gotErr := store.Update(ctx, id, amount, description)
+				gotErr := store.Update(ctx, id, amount, categoryID, description)
 
 				// Check.
 				assert.NoError(t, gotErr)
@@ -132,22 +145,26 @@ func TestOperationStore_Update(t *testing.T) {
 				row := db.QueryRow(ctx, getOperationByIdQuery, id)
 
 				var gotOperation model.Operation
+				var sqlCategoryID sql.NullInt64
 				err = row.Scan(
 					&gotOperation.ID,
 					&gotOperation.UserID,
 					&gotOperation.AccountID,
 					&gotOperation.Type,
+					&sqlCategoryID,
 					&gotOperation.Amount,
 					&gotOperation.Description,
 					&gotOperation.CreateTime,
 				)
 				assert.NoError(t, err)
 
+				gotOperation.CategoryID = sqlCategoryID.Int64
+
 				assert.Equal(t, amount, gotOperation.Amount)
 				assert.Equal(t, description, gotOperation.Description)
 
 				// Cleanup.
-				_, err = db.Exec(ctx, "TRUNCATE TABLE users, accounts, operations;")
+				_, err = db.Exec(ctx, "TRUNCATE TABLE users, accounts, operations, categories;")
 				assert.NoError(t, err)
 			},
 		},
@@ -162,9 +179,10 @@ func TestOperationStore_Update(t *testing.T) {
 
 				// Act.
 				amount := decimal.NewFromFloat(300.55)
+				categoryID := int64(0)
 				description := "Crypto"
 
-				gotErr := store.Update(ctx, id, amount, description)
+				gotErr := store.Update(ctx, id, amount, categoryID, description)
 
 				// Check.
 				assert.ErrorIs(t, gotErr, model.ErrNotFound)

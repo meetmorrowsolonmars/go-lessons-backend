@@ -13,7 +13,7 @@ import (
 
 type OperationService interface {
 	Create(ctx context.Context, operation model.Operation) (model.Operation, error)
-	Update(ctx context.Context, id uuid.UUID, amount decimal.Decimal, description string) error
+	Update(ctx context.Context, id uuid.UUID, amount decimal.Decimal, categoryID int64, description string) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	GetByAccountID(ctx context.Context, account int64, limit int64, offset int64) ([]model.Operation, error)
 }
