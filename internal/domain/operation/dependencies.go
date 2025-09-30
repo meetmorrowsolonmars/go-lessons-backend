@@ -29,3 +29,9 @@ type UserStore interface {
 type AccountStore interface {
 	GetByID(ctx context.Context, id int64) (model.Account, error)
 }
+
+//go:generate minimock -i CategoryStore
+
+type CategoryStore interface {
+	GetByID(ctx context.Context, id int64) (model.Category, error)
+}

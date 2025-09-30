@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/meetmorrowsolonmars/education-pet-project/internal/domain/model"
@@ -69,23 +70,18 @@ func (s *AccountStore) GetAccountsByUserID(ctx context.Context, userID int64) ([
 		return nil, fmt.Errorf("select accounts by user id: %w", err)
 	}
 
-	defer rows.Close()
+	accounts, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (model.Account, error) {
+		var account model.Account
 
-	var accounts []model.Account
-
-	for rows.Next() {
-		account := model.Account{}
-
-		err = rows.Scan(&account.ID, &account.UserID, &account.Title, &account.IsDefault, &account.CreateTime)
+		err = row.Scan(&account.ID, &account.UserID, &account.Title, &account.IsDefault, &account.CreateTime)
 		if err != nil {
-			return nil, fmt.Errorf("select accounts by user id: %w", err)
+			return model.Account{}, err
 		}
 
-		accounts = append(accounts, account)
-	}
-
-	if rows.Err() != nil {
-		return nil, fmt.Errorf("select accounts by user id: %w", rows.Err())
+		return account, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("select accounts by user id: %w", err)
 	}
 
 	return accounts, nil

@@ -1,6 +1,7 @@
 package account
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -32,6 +33,16 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		UserID: claims.UserID,
 		Title:  req.Title,
 	})
+	if errors.Is(err, model.ErrNotFound) {
+		h.logger.Error("Not found",
+			slog.Int64("user_id", claims.UserID),
+			slog.String("error", err.Error()),
+		)
+
+		api.EncodeErrorf(w, http.StatusNotFound, "Not found")
+
+		return
+	}
 	if err != nil {
 		h.logger.Error("Create account", slog.String("error", err.Error()))
 

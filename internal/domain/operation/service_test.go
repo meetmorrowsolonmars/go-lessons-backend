@@ -32,6 +32,11 @@ func TestService_Create(t *testing.T) {
 				store := NewStoreMock(mc)
 				userStore := NewUserStoreMock(mc)
 				accountStore := NewAccountStoreMock(mc)
+				categoryStore := NewCategoryStoreMock(mc)
+
+				categoryStore.GetByIDMock.
+					When(minimock.AnyContext, 5).
+					Then(model.Category{}, nil)
 
 				userStore.GetByIDMock.
 					When(minimock.AnyContext, 10).
@@ -64,9 +69,10 @@ func TestService_Create(t *testing.T) {
 					Then(operation, nil)
 
 				return &Service{
-					store:        store,
-					userStore:    userStore,
-					accountStore: accountStore,
+					store:         store,
+					userStore:     userStore,
+					accountStore:  accountStore,
+					categoryStore: categoryStore,
 				}
 			},
 			operation: model.Operation{
@@ -90,20 +96,47 @@ func TestService_Create(t *testing.T) {
 			wantErr: assert.NoError,
 		},
 		{
+			name: "get category error",
+			service: func(mc *minimock.Controller) *Service {
+				store := NewStoreMock(mc)
+				userStore := NewUserStoreMock(mc)
+				accountStore := NewAccountStoreMock(mc)
+				categoryStore := NewCategoryStoreMock(mc)
+
+				categoryStore.GetByIDMock.
+					When(minimock.AnyContext, 5).
+					Then(model.Category{}, errors.New("some error"))
+
+				return &Service{
+					store:         store,
+					userStore:     userStore,
+					accountStore:  accountStore,
+					categoryStore: categoryStore,
+				}
+			},
+			operation: model.Operation{
+				CategoryID: 5,
+			},
+			wantOperation: model.Operation{},
+			wantErr:       assert.Error,
+		},
+		{
 			name: "get user error",
 			service: func(mc *minimock.Controller) *Service {
 				store := NewStoreMock(mc)
 				userStore := NewUserStoreMock(mc)
 				accountStore := NewAccountStoreMock(mc)
+				categoryStore := NewCategoryStoreMock(mc)
 
 				userStore.GetByIDMock.
 					When(minimock.AnyContext, 10).
 					Then(model.User{}, errors.New("some error"))
 
 				return &Service{
-					store:        store,
-					userStore:    userStore,
-					accountStore: accountStore,
+					store:         store,
+					userStore:     userStore,
+					accountStore:  accountStore,
+					categoryStore: categoryStore,
 				}
 			},
 			operation: model.Operation{
@@ -118,6 +151,7 @@ func TestService_Create(t *testing.T) {
 				store := NewStoreMock(mc)
 				userStore := NewUserStoreMock(mc)
 				accountStore := NewAccountStoreMock(mc)
+				categoryStore := NewCategoryStoreMock(mc)
 
 				userStore.GetByIDMock.
 					When(minimock.AnyContext, 10).
@@ -128,9 +162,10 @@ func TestService_Create(t *testing.T) {
 					Then(model.Account{}, errors.New("some error"))
 
 				return &Service{
-					store:        store,
-					userStore:    userStore,
-					accountStore: accountStore,
+					store:         store,
+					userStore:     userStore,
+					accountStore:  accountStore,
+					categoryStore: categoryStore,
 				}
 			},
 			operation: model.Operation{
@@ -146,6 +181,7 @@ func TestService_Create(t *testing.T) {
 				store := NewStoreMock(mc)
 				userStore := NewUserStoreMock(mc)
 				accountStore := NewAccountStoreMock(mc)
+				categoryStore := NewCategoryStoreMock(mc)
 
 				userStore.GetByIDMock.
 					When(minimock.AnyContext, 10).
@@ -168,9 +204,10 @@ func TestService_Create(t *testing.T) {
 					Then(model.Operation{}, errors.New("some error"))
 
 				return &Service{
-					store:        store,
-					userStore:    userStore,
-					accountStore: accountStore,
+					store:         store,
+					userStore:     userStore,
+					accountStore:  accountStore,
+					categoryStore: categoryStore,
 				}
 			},
 			operation: model.Operation{

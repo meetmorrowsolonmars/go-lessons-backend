@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/shopspring/decimal"
 
@@ -122,18 +123,14 @@ func (s *OperationStore) GetByAccountID(
 ) ([]model.Operation, error) {
 	rows, err := s.db.Query(ctx, getOperationsByAccountIdQuery, accountID, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("get operations by account id: %w", err)
+		return nil, fmt.Errorf("select operations by account id: %w", err)
 	}
 
-	defer rows.Close()
-
-	operations := make([]model.Operation, 0, limit)
-
-	for rows.Next() {
+	operations, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (model.Operation, error) {
 		var operation model.Operation
 		var categoryID sql.NullInt64
 
-		err = rows.Scan(
+		err = row.Scan(
 			&operation.ID,
 			&operation.UserID,
 			&operation.AccountID,
@@ -144,17 +141,15 @@ func (s *OperationStore) GetByAccountID(
 			&operation.CreateTime,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("get operations by account id: %w", err)
+			return model.Operation{}, err
 		}
 
 		operation.CategoryID = categoryID.Int64
 
-		operations = append(operations, operation)
-	}
-
-	err = rows.Err()
+		return operation, nil
+	})
 	if err != nil {
-		return nil, fmt.Errorf("get operations by account id: %w", err)
+		return nil, fmt.Errorf("select operations by account id: %w", err)
 	}
 
 	return operations, nil

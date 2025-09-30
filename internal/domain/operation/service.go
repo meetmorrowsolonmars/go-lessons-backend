@@ -12,25 +12,35 @@ import (
 )
 
 type Service struct {
-	store        Store
-	userStore    UserStore
-	accountStore AccountStore
+	store         Store
+	userStore     UserStore
+	accountStore  AccountStore
+	categoryStore CategoryStore
 }
 
 func NewService(
 	store Store,
 	userStore UserStore,
 	accountStore AccountStore,
+	categoryStore CategoryStore,
 ) *Service {
 	return &Service{
-		store:        store,
-		userStore:    userStore,
-		accountStore: accountStore,
+		store:         store,
+		userStore:     userStore,
+		accountStore:  accountStore,
+		categoryStore: categoryStore,
 	}
 }
 
 func (s *Service) Create(ctx context.Context, operation model.Operation) (model.Operation, error) {
 	// TODO: Decide where validate amount in api or domain layer. Amount always should be positive number.
+	if operation.CategoryID != 0 {
+		_, err := s.categoryStore.GetByID(ctx, operation.CategoryID)
+		if err != nil {
+			return model.Operation{}, fmt.Errorf("get category by id: %w", err)
+		}
+	}
+
 	_, err := s.userStore.GetByID(ctx, operation.UserID)
 	if err != nil {
 		return model.Operation{}, fmt.Errorf("get user by id: %w", err)

@@ -137,11 +137,12 @@ func RunServer() error {
 	userStore := postgres.NewUserStore(pool)
 	accountStore := postgres.NewAccountStore(pool)
 	operationStore := postgres.NewOperationStore(pool)
+	categoryStore := postgres.NewCategoryStore(pool)
 
 	// Configure services.
 	userService := user.NewService(userStore)
 	authService := auth.NewService(userService, jwtProvider)
-	operationService := operation.NewService(operationStore, userStore, accountStore)
+	operationService := operation.NewService(operationStore, userStore, accountStore, categoryStore)
 
 	// Configure controllers.
 	authHandler := authv1.NewHandler(authService, logger)
